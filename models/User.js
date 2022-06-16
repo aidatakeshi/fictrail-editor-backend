@@ -55,7 +55,7 @@ module.exports = (sequelize) => {
     /**
      * Fields Settings
      */
-    User.hiddenFields = ['id_auto', 'password', 'last_login_attempt'];
+    User.hiddenFields = ['id_auto', 'password', 'last_login_attempt', 'is_deleted'];
 
     /**
      * Model Specific Methods

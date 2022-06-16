@@ -11,6 +11,8 @@ function e(status, res, error, message){
  * POST	login
  */
 exports.login = async function(req, res){
+    const transaction = await $models.sequelize.transaction();
+    const $tr = {transaction};
 
     //Check credentials missing -> 401
     let id, password;
@@ -38,7 +40,13 @@ exports.login = async function(req, res){
     }
 
     //Update last_login_attempt
-    user.update({last_login_attempt: current_timestamp});
+    try{
+        user.update({last_login_attempt: current_timestamp}, $tr);
+
+    }catch(error){
+        await transaction.rollback();
+        return e(500, res, "db_error", "Database Error");
+    }
 
     //Check if password incorrect -> 401
     if (!user.verifyPassword(password)){
@@ -52,17 +60,28 @@ exports.login = async function(req, res){
     const login_time = current_timestamp;
     const last_activity_time = login_time;
 
-    //Create login record & login session
-    LoginRecord.create({user_id, bearer_token, login_time});
-    LoginSession.create({user_id, bearer_token, login_time, last_activity_time});
+    try{
+        //Create login record
+        await LoginRecord.create({user_id, bearer_token, login_time}, $tr);
+        //Create login session
+        await LoginSession.create({user_id, bearer_token, login_time, last_activity_time}, $tr);
 
-    return res.send({user_id, bearer_token, login_time});
+    }catch(error){
+        await transaction.rollback();
+        return e(500, res, "db_error", "Database Error");
+    }
+
+    //Return Data
+    res.send({user_id, bearer_token, login_time});
+    await transaction.commit();
 }
 
 /**
  * POST	logout
  */
 exports.logout = async function(req, res){
+    const transaction = await $models.sequelize.transaction();
+    const $tr = {transaction};
 
     //Check if bearer token exists
     let bearer_token;
@@ -72,23 +91,35 @@ exports.logout = async function(req, res){
     bearer_token = bearer_token.split(' ').pop();
 
     //Check bearer token -> 401
-    let login_session = await LoginSession.findOne({where: {bearer_token}});
+    let login_session;
+    try{
+        login_session = await LoginSession.findOne({where: {bearer_token}});
+    }catch(error){
+        return e(500, res, "db_error", "Database Error");
+    }
     if (!login_session){
         return e(401, res, "session_not_found", "Session Not Found");
     }
+    let {user_id, login_time} = login_session;
 
-    //Update login record; remove login session
-    let login_record = await LoginRecord.findOne({where: {bearer_token, logout_time: 0}});
-    if (login_record){
-        const logout_time = Math.floor(new Date().getTime() / 1000);
-        login_record.update({logout_time});
+    //Update login record & Remove login session
+    let login_record;
+    let logout_time = Math.floor(new Date().getTime() / 1000);
+    try{
+        login_record = await LoginRecord.findOne({where: {bearer_token, logout_time: 0}});
+        if (login_record){
+            login_record.update({logout_time}, $tr);
+        }
+        await login_session.destroy($tr);
+
+    }catch(error){
+        await transaction.rollback();
+        return e(500, res, "db_error", "Database Error");
     }
-    login_session.destroy();
 
     //Return Data
-    let {user_id, login_time} = login_record;
-    return res.send({user_id, login_time, logout_time, bearer_token});
-
+    res.send({user_id, login_time, logout_time, bearer_token});
+    await transaction.commit();
 }
 
 /**
