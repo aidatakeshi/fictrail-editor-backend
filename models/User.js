@@ -60,6 +60,11 @@ module.exports = (sequelize) => {
     /**
      * Model Specific Methods
      */
+    User.prototype.getDisplayedObject = function(){
+        let obj = this.toJSON();
+        for (let field of User.hiddenFields) delete obj[field];
+        return obj;
+    };
 
     User.prototype.verifyPassword = function(passwordToVerify){
         return bcrypt.compareSync(passwordToVerify, this.getDataValue('password'));

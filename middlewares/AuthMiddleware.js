@@ -1,13 +1,10 @@
 const User = $models.User;
 const LoginSession = $models.LoginSession;
 const LoginRecord = $models.LoginRecord;
-const { v4: uuid } = require('uuid');
 
-function e(status, res, error, message){
-    return res.status(status).send({error, message});
-}
+const {e, w} = require("../controllers/common");
 
-module.exports = async function (req, res, next) {
+module.exports = async (req, res, next) => { await w(res, async (t) => {
 
     //Check if bearer token exists -> 401
     let bearer_token;
@@ -22,41 +19,43 @@ module.exports = async function (req, res, next) {
         return e(401, res, "session_not_found", "Session Not Found");
     }
 
-    let forceLogout = false;
+    //"Force Logout" Flag
+    let force_logout_error = null, force_logout_message = null;
 
     //Check if login session expired -> 401
-    let last_activity_time = login_session.last_activity_time;
-    let logout_inactivity_sec = parseInt(process.env.LOGOUT_INACTIVITY_SEC);
-    let current_timestamp = Math.floor(new Date().getTime() / 1000);
+    const last_activity_time = login_session.last_activity_time;
+    const logout_inactivity_sec = parseInt(process.env.LOGOUT_INACTIVITY_SEC);
+    const current_timestamp = Math.floor(new Date().getTime() / 1000);
     if (current_timestamp > last_activity_time + logout_inactivity_sec){
-        forceLogout = true;
-        e(401, res, "session_expired", "Session Expired. Please Login Again");
+        force_logout_error = "session_expired";
+        force_logout_message = "Session Expired. Please Login Again";
     }
 
     //Get user instance
     const user_id = login_session.user_id;
-    const user = await User.findOne({where: {id: user_id, is_deleted: false}});
+    let user = await User.findOne({where: {id: user_id, is_deleted: false}}, t);
 
     //If user not found -> 401
     if (!user){
-        forceLogout = true;
-        e(401, res, "user_not_found", "User Not Found");
+        force_logout_error = "user_not_found";
+        force_logout_message = "User Not Found";
     }
 
     //If user disabled -> 401
     if (!user.is_enabled){
-        forceLogout = true;
-        e(401, res, "user_disabled", "User Disabled");
+        force_logout_error = "user_disabled";
+        force_logout_message = "User Disabled";
     }
 
     //Force Logout?
-    if (forceLogout){
-        let login_record = await LoginRecord.findOne({where: {bearer_token, logout_time: 0}});
+    if (force_logout_error){
+        //Update login record & Remove login session
+        let login_record = await LoginRecord.findOne({where: {bearer_token, logout_time: 0}}, t);
         if (login_record){
-            login_record.update({logout_time: current_timestamp});
+            login_record.update({logout_time: current_timestamp}, t);
         }
-        login_session.destroy();
-        return false;
+        await login_session.destroy(t);
+        return e(401, res, force_logout_error, force_logout_message);
     }
 
     //Proceed
@@ -64,13 +63,9 @@ module.exports = async function (req, res, next) {
     login_session.update({last_activity_time: current_timestamp});
 
     //Pass User Data to Controller
-    user_json = user.toJSON();
-    for (let field in user_json){
-        if (!User.hiddenFields.includes(field)){
-            res.locals[field] = user_json[field];
-        }
-    }
+    res.locals = { ...res.locals, ...user.getDisplayedObject() };
 
+    //Pass to Next
     next();
 
-}
+})};
