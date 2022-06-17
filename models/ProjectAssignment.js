@@ -1,5 +1,6 @@
 'use strict';
-const { Model, DataTypes } = require('sequelize');
+const { Model, DataTypes:dt } = require('sequelize');
+const { validations } = require("./common");
 
 module.exports = (sequelize) => {
 
@@ -17,15 +18,10 @@ module.exports = (sequelize) => {
     };
 
     const model_attributes = {
-        id_auto:    { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
-        user_id:    { type: DataTypes.STRING },
-        project_id: { type: DataTypes.STRING },
-        rights:     {
-            type: DataTypes.STRING,
-            validate: {
-                isIn: [['owner', 'editor', 'viewer', null]],
-            }
-        }
+        id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
+        user_id: { type: dt.STRING },
+        project_id: { type: dt.STRING },
+        rights: { type: dt.STRING, validation: validations.user_rights },
     };
 
     ProjectAssignment.init(model_attributes, model_options);

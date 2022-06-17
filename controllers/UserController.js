@@ -2,17 +2,17 @@ const User = $models.User;
 const LoginSession = $models.LoginSession;
 const LoginRecord = $models.LoginRecord;
 
-const {e, w} = require("./common");
+const {e, val_e, w} = require("./common");
 
 /**
- * POST	login
+ * POST	/login
  */
 exports.login = async (req, res) => { await w(res, async (t) => {
 
-    //Check credentials missing -> 401
+    //Missing Params -> 401
     let id, password;
     if (!(id = req.body.id) || !(password = req.body.password)){
-        return e(401, res, "missing_credentials", "Missing Credentials");
+        return e(400, res, "missing_params", "Missing Parameters");
     }
 
     //Check if user exists -> 401
@@ -31,7 +31,7 @@ exports.login = async (req, res) => { await w(res, async (t) => {
     const current_timestamp = Math.floor(new Date().getTime() / 1000);
     const please_wait = user.last_login_attempt + min_interval - current_timestamp;
     if (please_wait > 0){
-        return e(401, res, "try_again_later", `Please Try ${please_wait} Seconds Later`);
+        return e(400, res, "try_again_later", `Please Try ${please_wait} Seconds Later`);
     }
 
     //Update last_login_attempt
@@ -57,14 +57,14 @@ exports.login = async (req, res) => { await w(res, async (t) => {
 })};
 
 /**
- * POST	logout
+ * POST	/logout
  */
 exports.logout = async (req, res) => { await w(res, async (t) => {
 
     //Check if bearer token exists
     let bearer_token;
     if (!(bearer_token = req.headers.authorization)){
-        return e(401, res, "missing_bearer_token", "Missing Bearer Token");
+        return e(400, res, "missing_bearer_token", "Missing Bearer Token");
     }
     bearer_token = bearer_token.split(' ').pop();
 
@@ -88,8 +88,52 @@ exports.logout = async (req, res) => { await w(res, async (t) => {
 })};
 
 /**
- * GET myself
+ * GET /myself
  */
 exports.getMyself = async (req, res) => { await w(res, async (t) => {
-    return res.send(res.locals);
+    const user = res.locals.user;
+    return res.send(user.getDisplayedObject());
+})};
+
+/**
+ * PUT /myself
+ */
+exports.setMyself = async (req, res) => { await w(res, async (t) => {
+    const params = User.getFilteredParams(req.body, true, false);
+    const user = res.locals.user;
+    try{
+        await user.update(params, t);
+    }catch(error){
+        return val_e(res, error);
+    }
+    return res.send(user.getDisplayedObject());
+})};
+
+/**
+ * PUT /my-password
+ */
+exports.setMyPassword = async (req, res) => { await w(res, async (t) => {
+    const user = res.locals.user;
+    const old_password = req.body.old_password;
+    const new_password = req.body.new_password;
+
+    //Missing Params -> 401
+    if (!old_password || !new_password){
+        return e(400, res, "missing_params", "Missing Parameters");
+    }
+    
+    //Check if old password incorrect -> 401
+    if (!user.verifyPassword(old_password)){
+        return e(401, res, "incorrect_old_password", "Incorrect Old Password");
+    }
+
+    //Update with validation
+    try{
+        await user.update({new_password}, t);
+    }catch(error){
+        return val_e(res, error);
+    }
+
+    //Return empty obj if success
+    return res.send({});
 })};

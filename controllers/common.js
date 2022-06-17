@@ -1,11 +1,28 @@
-//Return Error
-function error(status, res, error, message){
-    return res.status(status).send({error, message});
+/**
+ * Show Error as JSON Response [showError / e]
+ */
+function showError(status, res, error, message, additionalInfo = {}){
+    return res.status(status).send({error, message, ...additionalInfo});
 }
-exports.error = error;
-exports.e = error;
+exports.showError = showError;
+exports.e = showError;
 
-//Wrapper to handling controller errors (including database errors)
+/**
+ * Show Validation Errors as JSON Response [showValidationError / val_e]
+ */
+function showValidationError(res, error){
+    return showError(400, res, "validation_error", "Validation Error", {
+        details: error.errors.map(item => ({
+            field: item.path, type: item.validatorKey, message: item.message,
+        })),
+    });
+}
+exports.showValidationError = showValidationError;
+exports.val_e = showValidationError;
+
+/**
+ * Wrapper to Handling Errors (Including Database Errors) [wrapperForController / w]
+ */
 async function wrapperForController(res, func){
     try{
         const result = await $models.sequelize.transaction(async function(transaction){
@@ -14,8 +31,8 @@ async function wrapperForController(res, func){
             return subresult;
         });
         return result;
-    } catch (e){
-        return res.status(500).send({error: "error", message: e.toString()});
+    } catch (error){
+        return res.status(500).send({error: "error", message: error.toString()});
     }
 }
 exports.wrapperForController = wrapperForController;

@@ -1,6 +1,6 @@
 'use strict';
-const { Model, DataTypes } = require('sequelize');
-const bcrypt = require("bcrypt");
+const { Model, DataTypes: dt } = require('sequelize');
+const { validations } = require("./common");
 
 module.exports = (sequelize) => {
 
@@ -18,16 +18,15 @@ module.exports = (sequelize) => {
     };
 
     const model_attributes = {
-        id_auto:            { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
-        project_id:         { type: DataTypes.STRING },
-        bearer_token:       { type: DataTypes.STRING },
-        language_default:   { type: DataTypes.TEXT },
-        language_alt:       { type: DataTypes.JSON },
-        latitude_min:       { type: DataTypes.DOUBLE, validate: { min: -90, max: 90 } },
-        latitude_max:       { type: DataTypes.DOUBLE, validate: { min: -90, max: 90 } },
-        longitude_min:      { type: DataTypes.DOUBLE, validate: { min: -360, max: +360 } },
-        longitude_max:      { type: DataTypes.DOUBLE, validate: { min: -360, max: +360 } },
-        earth_radius:       { type: DataTypes.DOUBLE },
+        id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
+        project_id: { type: dt.STRING },
+        language_default: { type: dt.TEXT, allowNull: true, validate: validations.name },
+        language_alt: { type: dt.JSON },
+        latitude_min: { type: dt.DOUBLE },
+        latitude_max: { type: dt.DOUBLE },
+        longitude_min: { type: dt.DOUBLE },
+        longitude_max: { type: dt.DOUBLE },
+        earth_radius: { type: dt.DOUBLE },
     };
 
     ProjectSettings.init(model_attributes, model_options);

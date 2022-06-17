@@ -16,7 +16,8 @@ const UserController = require('../controllers/UserController');
 router.post('/login', UserController.login);
 router.post('/logout', UserController.logout);
 router.get('/myself', _auth, UserController.getMyself);
-router.get('/myself/:project_id', _auth, UserController.getMyself);
+router.put('/myself', _auth, UserController.setMyself);
+router.put('/my-password', _auth, UserController.setMyPassword);
 
 /**
  * Misc

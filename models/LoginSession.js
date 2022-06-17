@@ -1,6 +1,6 @@
 'use strict';
-const { Model, DataTypes } = require('sequelize');
-const { v4: uuid } = require('uuid');
+const { Model, DataTypes:dt } = require('sequelize');
+const { validations } = require("./common");
 
 module.exports = (sequelize) => {
 
@@ -18,11 +18,11 @@ module.exports = (sequelize) => {
     };
 
     const model_attributes = {
-        id_auto:            { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
-        user_id:            { type: DataTypes.STRING },
-        bearer_token:       { type: DataTypes.STRING },
-        login_time:         { type: DataTypes.BIGINT },
-        last_activity_time: { type: DataTypes.BIGINT },
+        id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
+        user_id: { type: dt.STRING },
+        bearer_token: { type: dt.STRING },
+        login_time: { type: dt.BIGINT },
+        last_activity_time: { type: dt.BIGINT },
     };
 
     LoginSession.init(model_attributes, model_options);

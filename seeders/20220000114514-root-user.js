@@ -12,7 +12,7 @@ module.exports = {
         const root_user = await User.create({
             id: 'root',
             is_root_user: true,
-            password: 'root',
+            new_password: 'root',
             created_at: current_timestamp,
         });
         console.log("[Created user 'root' with password 'root']");

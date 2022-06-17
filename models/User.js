@@ -1,5 +1,7 @@
 'use strict';
-const { Model, DataTypes } = require('sequelize');
+const { Model, DataTypes:dt } = require('sequelize');
+const { validations } = require("./common");
+
 const bcrypt = require("bcrypt");
 const { v4: uuid } = require('uuid');
 const jwt = require('jsonwebtoken');
@@ -20,34 +22,25 @@ module.exports = (sequelize) => {
     };
 
     const model_attributes = {
-        id_auto: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
-        id: {
-            type: DataTypes.STRING, unique: true, validate: {
-                len: {
-                    args: [[4, 255]],
-                    msg: "Length Should be Between 4 and 255",
-                },
-            },
-        },
+        id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
+        id: { type: dt.STRING, unique: true, validate: validations.string },
         name: {
-            type: DataTypes.STRING,
-            get(){
-                return this.getDataValue('name') || this.getDataValue('id');
-            },
+            type: dt.TEXT, allowNull: true, validate: validations.name,
+            get(){ return this.getDataValue('name') || this.getDataValue('id') },
         },
-        email: { type: DataTypes.STRING },
-        password: {
-            type: DataTypes.STRING,
-            set(value){
-                this.setDataValue('password', bcrypt.hashSync(value, 10));
-            },
+        email: { type: dt.TEXT, allowNull: true, validate: validations.email },
+        new_password: { //Virtual Field
+            type: dt.VIRTUAL, validate: validations.password,
+            set(value){ this.setDataValue('password', bcrypt.hashSync(value, 10)) },
         },
-        last_login_attempt: { type: DataTypes.BIGINT },
-        is_root_user: { type: DataTypes.BOOLEAN },
-        is_enabled: { type: DataTypes.BOOLEAN },
-        created_at: { type: DataTypes.BIGINT },
-        created_by: { type: DataTypes.BIGINT },
-        is_deleted: { type: DataTypes.BOOLEAN },
+        password: { type: dt.STRING, set(){} },
+        last_login_attempt: { type: dt.BIGINT },
+        is_root_user: { type: dt.BOOLEAN },
+        is_enabled: { type: dt.BOOLEAN },
+        //
+        created_at: { type: dt.BIGINT },
+        created_by: { type: dt.STRING },
+        is_deleted: { type: dt.BOOLEAN },
     };
 
     User.init(model_attributes, model_options);
@@ -55,7 +48,9 @@ module.exports = (sequelize) => {
     /**
      * Fields Settings
      */
-    User.hiddenFields = ['id_auto', 'password', 'last_login_attempt', 'is_deleted'];
+    User.hiddenFields = ['id_auto', 'password', 'new_password', 'last_login_attempt', 'is_deleted'];
+    User.editableFieldsForMyself =      ['name', 'email'];
+    User.editableFieldsByRootUser =     ['name', 'email', 'new_password', 'is_root_user', 'is_enabled'];
 
     /**
      * Model Specific Methods
@@ -65,6 +60,14 @@ module.exports = (sequelize) => {
         for (let field of User.hiddenFields) delete obj[field];
         return obj;
     };
+
+    User.getFilteredParams = function(params, isMyself = true, isNew = false){
+        let editableFields = isMyself ? User.editableFieldsForMyself : User.editableFieldsByRootUser;
+        if (isNew) editableFields.push('id');
+        let obj = {};
+        for (let field of editableFields) if (params[field] !== undefined) obj[field] = params[field];
+        return obj;
+    }
 
     User.prototype.verifyPassword = function(passwordToVerify){
         return bcrypt.compareSync(passwordToVerify, this.getDataValue('password'));

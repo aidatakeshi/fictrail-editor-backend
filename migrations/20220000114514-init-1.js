@@ -4,18 +4,21 @@ module.exports = {
 
         const id_bigint = { type: Sequelize.BIGINT, autoIncrement: true, primaryKey: true, unique: true };
         const id_string = { type: Sequelize.STRING, unique: true };
-        const uuid = { type: Sequelize.UUID };
+        const uuid = { type: Sequelize.UUID, allowNull: true };
         const bool_default_true = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true };
         const bool_default_false = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false };
         const json = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
         const json_array = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
-        const text = { type: Sequelize.TEXT, allowNull: false, defaultValue: "" };
-        const string = { type: Sequelize.STRING, allowNull: false, defaultValue: "" };
-        const string_nullable = { type: Sequelize.STRING };
+        const text = { type: Sequelize.TEXT, allowNull: true };
+        const string = { type: Sequelize.STRING, allowNull: true };
         const string_required = { type: Sequelize.STRING, allowNull: false };
         const timestamp = { type: Sequelize.BIGINT, allowNull: false, defaultValue: 0 };
-        const double = { type: Sequelize.DOUBLE };
-        const bigint = { type: Sequelize.BIGINT };
+        const double = { type: Sequelize.DOUBLE, allowNull: true };
+        const bigint = { type: Sequelize.BIGINT, allowNull: true };
+
+        const created_at = timestamp;
+        const created_by = string;
+        const is_deleted = bool_default_false;
 
         /**
          * Table "projects"
@@ -26,9 +29,8 @@ module.exports = {
             name: text,
             name_l: json,
             is_public: bool_default_false,
-            created_at: timestamp,
-            created_by: uuid,
-            is_deleted: bool_default_false,
+            //
+            created_at, created_by, is_deleted,
         });
 
         /**
@@ -37,15 +39,14 @@ module.exports = {
         await queryInterface.createTable('users', {
             id_auto: id_bigint,
             id: id_string,
-            name: string,
+            name: text,
             password: string_required,
-            email: string,
+            email: text,
             last_login_attempt: timestamp,
             is_enabled: bool_default_true,
             is_root_user: bool_default_true,
-            created_at: timestamp,
-            created_by: uuid,
-            is_deleted: bool_default_false,
+            //
+            created_at, created_by, is_deleted,
         });
 
         /**
@@ -55,7 +56,7 @@ module.exports = {
             id_auto: id_bigint,
             user_id: string_required,
             project_id: string_required,
-            rights: string_nullable,
+            rights: string,
         });
 
         /**
@@ -108,7 +109,8 @@ module.exports = {
             mimetype: string,
             size: bigint,
             upload_time: timestamp,
-            is_deleted: bool_default_false,
+            //
+            is_deleted,
         });
 
     },

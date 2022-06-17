@@ -3,7 +3,6 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
 const config = require('../config/config.js')[env];
 const db = {};
@@ -13,7 +12,8 @@ sequelize = new Sequelize(config.database, config.username, config.password, con
 
 fs.readdirSync(__dirname)
 .filter(file => {
-    if (file === basename) return false;            //Current file
+    if (file === "index.js") return false;          //index.js
+    if (file === "common.js") return false;         //common.js
     if (file.split('.').length > 2) return false;   //Containing two or more "."
     if (file.slice(-3) !== '.js') return false;     //Non .js file
     return true;

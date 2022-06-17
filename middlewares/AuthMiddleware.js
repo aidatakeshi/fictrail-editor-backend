@@ -63,7 +63,9 @@ module.exports = async (req, res, next) => { await w(res, async (t) => {
     login_session.update({last_activity_time: current_timestamp});
 
     //Pass User Data to Controller
-    res.locals = { ...res.locals, ...user.getDisplayedObject() };
+    res.locals.user = user;
+    res.locals.id = user.id;
+    res.locals.is_root_user = user.is_root_user;
 
     //Pass to Next
     next();

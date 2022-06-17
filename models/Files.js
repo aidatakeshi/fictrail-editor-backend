@@ -1,6 +1,6 @@
 'use strict';
-const { Model, DataTypes } = require('sequelize');
-const bcrypt = require("bcrypt");
+const { Model, DataTypes:dt } = require('sequelize');
+const { validations } = require("./common");
 
 module.exports = (sequelize) => {
 
@@ -18,16 +18,16 @@ module.exports = (sequelize) => {
     };
 
     const model_attributes = {
-        id_auto:            { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
-        id:                 { type: DataTypes.STRING },
-        project_id:         { type: DataTypes.STRING },
-        uploader_id:        { type: DataTypes.STRING },
-        directory:          { type: DataTypes.STRING },
-        extension:          { type: DataTypes.STRING },
-        mimetype:           { type: DataTypes.STRING },
-        size:               { type: DataTypes.BIGINT },
-        upload_time:        { type: DataTypes.BIGINT },
-        is_deleted:         { type: DataTypes.BOOLEAN },
+        id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
+        id: { type: dt.STRING, unique: true, validate: validations.string },
+        project_id: { type: dt.STRING },
+        uploader_id: { type: dt.STRING },
+        directory: { type: dt.STRING },
+        extension: { type: dt.STRING },
+        mimetype: { type: dt.STRING },
+        size: { type: dt.BIGINT },
+        upload_time: { type: dt.BIGINT },
+        is_deleted: { type: dt.BOOLEAN },
     };
 
     Files.init(model_attributes, model_options);
