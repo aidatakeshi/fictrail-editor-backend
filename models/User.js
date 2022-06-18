@@ -23,19 +23,25 @@ module.exports = (sequelize) => {
 
     const model_attributes = {
         id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
-        id: { type: dt.STRING, unique: true, validate: validations.string },
+        id: { type: dt.STRING, allowNull: false, unique: true, validate: validations.id },
         name: {
             type: dt.TEXT, allowNull: true, validate: validations.name,
             get(){ return this.getDataValue('name') || this.getDataValue('id') },
         },
         email: { type: dt.TEXT, allowNull: true, validate: validations.email },
-        new_password: { //Virtual Field
-            type: dt.VIRTUAL, validate: validations.password,
-            set(value){ this.setDataValue('password', bcrypt.hashSync(value, 10)) },
+        password: {
+            type: dt.STRING, allowNull: false, validate: validations.password,
+            set(value){
+                if (value.length < 8 || value.length > 255){
+                    this.setDataValue('password', null);
+                }else{
+                    this.setDataValue('password', bcrypt.hashSync(value, 10));
+                }
+            },
         },
-        password: { type: dt.STRING, set(){} },
         last_login_attempt: { type: dt.BIGINT },
         is_root_user: { type: dt.BOOLEAN },
+        can_create_new_project: { type: dt.BOOLEAN },
         is_enabled: { type: dt.BOOLEAN },
         //
         created_at: { type: dt.BIGINT },
@@ -48,9 +54,9 @@ module.exports = (sequelize) => {
     /**
      * Fields Settings
      */
-    User.hiddenFields = ['id_auto', 'password', 'new_password', 'last_login_attempt', 'is_deleted'];
-    User.editableFieldsForMyself =      ['name', 'email'];
-    User.editableFieldsByRootUser =     ['name', 'email', 'new_password', 'is_root_user', 'is_enabled'];
+    User.hiddenFields = ['id_auto', 'password', 'last_login_attempt', 'is_deleted'];
+    User.uneditableFields = ['last_login_attempt'];
+    User.uneditableFieldsForMyself = ['password', 'is_root_user', 'can_create_new_project', 'is_enabled'];
 
     /**
      * Model Specific Methods
@@ -62,11 +68,11 @@ module.exports = (sequelize) => {
     };
 
     User.getFilteredParams = function(params, isMyself = true, isNew = false){
-        let editableFields = isMyself ? User.editableFieldsForMyself : User.editableFieldsByRootUser;
-        if (isNew) editableFields.push('id');
-        let obj = {};
-        for (let field of editableFields) if (params[field] !== undefined) obj[field] = params[field];
-        return obj;
+        if (!isNew) delete params.id;
+        for (let f of ['id_auto', 'created_at', 'created_by', 'is_deleted']) delete params[f];
+        for (let f of User.uneditableFields) delete params[f];
+        if (isMyself) for (let f of User.uneditableFieldsForMyself) delete params[f];
+        return params;
     }
 
     User.prototype.verifyPassword = function(passwordToVerify){

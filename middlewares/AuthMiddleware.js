@@ -16,7 +16,8 @@ const {e, w} = require("../controllers/common");
 module.exports = function(restriction = "user"){
     return async (req, res, next) => { await w(res, async (t) => {
 
-        let bearer_token, user, user_id, is_root_user;
+        let bearer_token, user, user_id;
+        let is_root_user, can_create_new_project;
         let project_id = req.params.project_id;
         let user_rights_in_project, is_project_public;
 
@@ -46,6 +47,7 @@ module.exports = function(restriction = "user"){
             user_id = login_session.user_id;
             user = await User.findOne({where: {id: user_id, is_deleted: false}}, t);
             is_root_user = user.is_root_user;
+            can_create_new_project = user.can_create_new_project;
 
             //If user not found -> 401
             if (!user){
@@ -78,6 +80,7 @@ module.exports = function(restriction = "user"){
         res.locals.user = user;
         res.locals.id = user_id;
         res.locals.is_root_user = is_root_user;
+        res.locals.can_create_new_project = can_create_new_project;
 
         //Check User Rights in the Project
         if (project_id && res.locals.id){

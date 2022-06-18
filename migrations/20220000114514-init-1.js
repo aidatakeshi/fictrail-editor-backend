@@ -44,7 +44,8 @@ module.exports = {
             email: text,
             last_login_attempt: timestamp,
             is_enabled: bool_default_true,
-            is_root_user: bool_default_true,
+            is_root_user: bool_default_false,
+            can_create_new_project: bool_default_true,
             //
             created_at, created_by, is_deleted,
         });

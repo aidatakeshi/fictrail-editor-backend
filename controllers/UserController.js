@@ -92,7 +92,10 @@ exports.logout = async (req, res) => { await w(res, async (t) => {
  */
 exports.getMyself = async (req, res) => { await w(res, async (t) => {
     const user = res.locals.user;
-    return res.send(user.getDisplayedObject());
+    if (user){
+        return res.send(user.getDisplayedObject());
+    }
+    return res.send({});
 })};
 
 /**
@@ -129,11 +132,108 @@ exports.setMyPassword = async (req, res) => { await w(res, async (t) => {
 
     //Update with validation
     try{
-        await user.update({new_password}, t);
+        await user.update({password: new_password}, t);
     }catch(error){
         return val_e(res, error);
     }
 
     //Return empty obj if success
     return res.send({});
+})};
+
+/**
+ * POST /user
+ */
+exports.newUser = async (req, res) => { await w(res, async (t) => {
+    const params = User.getFilteredParams(req.body, false, true);
+
+    //Create with validation
+    let user;
+    try{
+        user = await User.create(params, t);
+    }catch(error){
+        return val_e(res, error);
+    }
+
+    //Return new user obj if success
+    return res.send(user.getDisplayedObject());
+    
+})};
+
+/**
+ * GET /user
+ */
+exports.getUsers = async (req, res) => { await w(res, async (t) => {
+
+})};
+
+/**
+ * GET /user/:user_id
+ */
+exports.getUser = async (req, res) => { await w(res, async (t) => {
+
+    const user = await User.findOne({
+        where: {id: req.params.user_id, is_deleted: false},
+    }, t);
+
+    //User not found -> 404
+    if (!user){
+        return e(404, res, "user_not_found", "User Not Found");
+    }
+
+    //Return Data
+    return res.send(user.getDisplayedObject());
+
+})};
+
+/**
+ * PUT /user/:user_id
+ */
+exports.setUser = async (req, res) => { await w(res, async (t) => {
+
+    const params = User.getFilteredParams(req.body, false, false);
+    const user = await User.findOne({
+        where: {id: req.params.user_id, is_deleted: false},
+    }, t);
+
+    //User not found -> 404
+    if (!user){
+        return e(404, res, "user_not_found", "User Not Found");
+    }
+
+    //Update with validation
+    try{
+        await user.update(params, t);
+    }catch(error){
+        return val_e(res, error);
+    }
+
+    //Return new user obj if success
+    return res.send(user.getDisplayedObject());
+
+})};
+
+/**
+ * DELETE /user/:user_id
+ */
+exports.removeUser = async (req, res) => { await w(res, async (t) => {
+
+    const user = await User.findOne({
+        where: {id: req.params.user_id, is_deleted: false},
+    }, t);
+
+    //User not found -> 404
+    if (!user){
+        return e(404, res, "user_not_found", "User Not Found");
+    }
+
+    //Copy user obj
+    const old_user = { ... user.getDisplayedObject() };
+
+    //Soft delete user
+    user.update({is_deleted: true});
+
+    //Return old user obj
+    return res.send(old_user);
+
 })};

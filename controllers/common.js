@@ -11,11 +11,15 @@ exports.e = showError;
  * Show Validation Errors as JSON Response [showValidationError / val_e]
  */
 function showValidationError(res, error){
-    return showError(400, res, "validation_error", "Validation Error", {
-        details: error.errors.map(item => ({
-            field: item.path, type: item.validatorKey, message: item.message,
-        })),
-    });
+    if (Array.isArray(error.errors)){
+        return showError(400, res, "validation_error", "Validation Error", {
+            details: error.errors.map(item => ({
+                field: item.path, type: item.validatorKey, message: item.message,
+            })),
+        });
+    }else{
+        return res.status(500).send({error: "error", message: error.toString()});
+    }
 }
 exports.showValidationError = showValidationError;
 exports.val_e = showValidationError;
