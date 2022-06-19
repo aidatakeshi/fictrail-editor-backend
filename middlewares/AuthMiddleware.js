@@ -84,7 +84,7 @@ module.exports = function(restriction = "user"){
 
         //Check User Rights in the Project
         if (project_id && res.locals.id){
-            //...
+            //...is_project_public, user_rights_in_project
 
         }
 

@@ -71,8 +71,18 @@ exports.filterQueries = filterQueries;
 
 /**
  * API - List for Model Instances
- * [Required Attributes in Class] sorts, sort_default, filters, limit_default, limit_max, hidden_fields
+ * [Required Attributes in Class]
+ * sorts, sort_default, filters, limit_default, limit_max, hidden_fields*
+ * [Optional Methods in Class]
+ * additional_data (function, params: instance, req)
  * [Options]
+ * alt_hidden_fields (string)
+ * append_where (string/array)
+ * append_where_replacement (string/array)
+ * custom_mapping (function, params: instance, req)
+ * additional_data (class method takes priority)
+ * custom_select (string)
+ * custom_join_statement (string)
  */
 async function listingAPI(req, res, className, options = {}){
 
@@ -92,6 +102,13 @@ async function listingAPI(req, res, className, options = {}){
         }
     }
 
+    let append_where = Array.isArray(options.append_where) ? options.append_where
+    : (options.append_where ? [options.append_where] : []);
+    let append_where_replacement = Array.isArray(options.append_where_replacement) ? options.append_where_replacement
+    : (options.append_where_replacement ? [options.append_where_replacement] : []);
+    for (let item of append_where) where += ` AND (${item})`;
+    for (let item of append_where_replacement) replacements.push(item);
+
     //Sort (query: _sort)
     let $sorts = MyClass.sorts || {};
     let order_by = MyClass.sort_default || "id ASC";
@@ -107,7 +124,8 @@ async function listingAPI(req, res, className, options = {}){
     }
 
     //Make Count
-    const query_count = `SELECT COUNT(id) FROM ${tableName} WHERE ${where}`;
+    const join_statement = options.custom_join_statement || '';
+    const query_count = `SELECT COUNT(id) FROM ${tableName} ${join_statement} WHERE ${where}`;
     const count_result = await $models.sequelize.query(query_count, {
         replacements,
         type: QueryTypes.SELECT,
@@ -128,7 +146,9 @@ async function listingAPI(req, res, className, options = {}){
         const limit_offset = `LIMIT ${limit} OFFSET ${offset}`;
         
         //Do Search
-        const query_select = `SELECT * FROM ${tableName} WHERE ${where} ORDER BY ${order_by} ${limit_offset}`;
+        const select = options.custom_select || '*';
+        const query_select = `SELECT ${select} FROM ${tableName} ${join_statement}`
+        + ` WHERE ${where} ORDER BY ${order_by} ${limit_offset}`;
         const instances = await $models.sequelize.query(query_select, {
             replacements,
             type: QueryTypes.SELECT,
@@ -138,8 +158,22 @@ async function listingAPI(req, res, className, options = {}){
         const from = offset + 1;
         const to = offset + instances.length;
 
+        //Handle Mapping & Additional Data
+        let data;
+        if (!options.custom_mapping){
+            data = instances.map(instance => getDisplayObject(instance, className, options.alt_hidden_fields));
+        }else{
+            data = instances.map(instance => options.custom_mapping(instance, req));
+        }
+        const additional_data_func = MyClass.additional_data || options.additional_data;
+        if (additional_data_func){
+            let a_data = instances.map(instance => additional_data_func(instance, req));
+            for (let i in a_data){
+                data[i] = {...data[i], ...a_data[i]};
+            }
+        }
+
         //Return Data
-        const data = instances.map(instance => getDisplayObject(instance, className));
         return res.send({ pages, page, limit, from, to, count, data });
     }
 

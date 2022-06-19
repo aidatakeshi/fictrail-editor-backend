@@ -52,7 +52,7 @@ module.exports = (sequelize) => {
     User.init(model_attributes, model_options);
 
     /**
-     * Fields
+     * CRUD-Related
      */
     User.hidden_fields = ['id_auto', 'password', 'last_login_attempt', 'is_deleted'];
     User.locked_fields_root = ['last_login_attempt'];
@@ -60,8 +60,8 @@ module.exports = (sequelize) => {
         'last_login_attempt', 'password', 'is_root_user', 'can_create_new_project', 'is_enabled'
     ];
 
-    User.sorts = {
-        id: "LOWER(id)", //e.g. "id_asc", "id_desc"
+    User.sorts = { //e.g. "id_asc", "id_desc"
+        id: "LOWER(id)",
         name: "LOWER(COALESCE(name,id))",
         email: "email",
         created_at: "created_at",

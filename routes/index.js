@@ -32,6 +32,22 @@ router.put('/user/:user_id', _auth.root, UserController.setUser);
 router.delete('/user/:user_id', _auth.root, UserController.removeUser);
 
 /**
+ * Project
+ */
+
+const ProjectController = require('../controllers/ProjectController');
+
+router.post('/project', _auth.user, ProjectController.newProject);
+router.get('/project', _auth.user, ProjectController.getProjects);
+router.get('/project/:project_id', _auth.user, ProjectController.getProject);
+router.put('/project/:project_id', _auth.user, ProjectController.setProject);
+router.delete('/project/:project_id', _auth.user, ProjectController.removeProject);
+router.put('/project/:project_id/assign', _auth.user, ProjectController.assignProject);
+router.put('/project/:project_id/unassign', _auth.user, ProjectController.unassignProject);
+router.get('/project/:project_id/settings', _auth.user, ProjectController.getProjectSettings);
+router.put('/project/:project_id/settings', _auth.user, ProjectController.setProjectSettings);
+
+/**
  * Misc
  */
 

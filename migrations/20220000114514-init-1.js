@@ -8,7 +8,6 @@ module.exports = {
         const bool_default_true = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true };
         const bool_default_false = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false };
         const json = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
-        const json_array = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
         const text = { type: Sequelize.TEXT, allowNull: true };
         const string = { type: Sequelize.STRING, allowNull: true };
         const string_required = { type: Sequelize.STRING, allowNull: false };
@@ -89,7 +88,7 @@ module.exports = {
             id_auto: id_bigint,
             project_id: string_required,
             language_default: text,
-            language_alt: json_array,
+            language_alt: json,
             latitude_min: double,
             latitude_max: double,
             longitude_min: double,

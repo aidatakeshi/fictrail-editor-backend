@@ -146,7 +146,7 @@ exports.setMyPassword = async (req, res) => { await w(res, async (t) => {
  * POST /user
  */
 exports.newUser = async (req, res) => { await w(res, async (t) => {
-    
+
     const params = filterQueries(req.body, 'User', true, 'locked_fields_root');
 
     //Create with validation
