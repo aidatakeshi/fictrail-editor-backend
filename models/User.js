@@ -1,5 +1,5 @@
 'use strict';
-const { Model, DataTypes:dt } = require('sequelize');
+const { Model, DataTypes:dt, Op } = require('sequelize');
 const { validations } = require("./common");
 
 const bcrypt = require("bcrypt");
@@ -52,29 +52,58 @@ module.exports = (sequelize) => {
     User.init(model_attributes, model_options);
 
     /**
-     * Fields Settings
+     * Fields
      */
-    User.hiddenFields = ['id_auto', 'password', 'last_login_attempt', 'is_deleted'];
-    User.uneditableFields = ['last_login_attempt'];
-    User.uneditableFieldsForMyself = ['password', 'is_root_user', 'can_create_new_project', 'is_enabled'];
+    User.hidden_fields = ['id_auto', 'password', 'last_login_attempt', 'is_deleted'];
+    User.locked_fields_root = ['last_login_attempt'];
+    User.locked_fields_myself = [
+        'last_login_attempt', 'password', 'is_root_user', 'can_create_new_project', 'is_enabled'
+    ];
+
+    User.sorts = {
+        id: "LOWER(id)", //e.g. "id_asc", "id_desc"
+        name: "LOWER(COALESCE(name,id))",
+        email: "email",
+        created_at: "created_at",
+    };
+    User.sort_default = "id_auto DESC";
+
+    User.filters = {
+        id: (val) => ({
+            statement: `LOWER(id) LIKE ?`, replacement: [`${val.toLowerCase()}%`],
+        }),
+        id_contains: (val) => ({
+            statement: `LOWER(id) LIKE ?`, replacement: [`%${val.toLowerCase()}%`],
+        }),
+        name: (val) => ({
+            statement: `LOWER(COALESCE(name,id)) LIKE ?`, replacement: [`${val.toLowerCase()}%`],
+        }),
+        name_contains: (val) => ({
+            statement: `LOWER(COALESCE(name,id)) LIKE ?`, replacement: [`%${val.toLowerCase()}%`],
+        }),
+        email: (val) => ({
+            statement: `LOWER(email) LIKE ?`, replacement: [`${val.toLowerCase()}%`],
+        }),
+        email_contains: (val) => ({
+            statement: `LOWER(email) LIKE ?`, replacement: [`%${val.toLowerCase()}%`],
+        }),
+        enabled: () => ({ statement: `is_enabled = TRUE`, replacement: [], }),
+        disabled: () => ({ statement: `is_enabled = FALSE`, replacement: [], }),
+        root_user: () => ({ statement: `is_root_user = TRUE`, replacement: [], }),
+        normal_user: () => ({ statement: `is_root_user = FALSE`, replacement: [], }),
+        can_create_new_project: () => ({ statement: `can_create_new_project = TRUE`, replacement: [], }),
+        cannot_create_new_project: () => ({ statement: `can_create_new_project = FALSE`, replacement: [], }),
+        created_before: (val) => ({ statement: `created_at <= ?`, replacement: [val], }),
+        created_after: (val) => ({ statement: `created_at >= ?`, replacement: [val], }),
+        created_by: (val) => ({ statement: `created_by = ?`, replacement: [val], }),
+    };
+
+    User.limit_default = 25;
+    User.limit_max = 100;
 
     /**
      * Model Specific Methods
      */
-    User.prototype.getDisplayedObject = function(){
-        let obj = this.toJSON();
-        for (let field of User.hiddenFields) delete obj[field];
-        return obj;
-    };
-
-    User.getFilteredParams = function(params, isMyself = true, isNew = false){
-        if (!isNew) delete params.id;
-        for (let f of ['id_auto', 'created_at', 'created_by', 'is_deleted']) delete params[f];
-        for (let f of User.uneditableFields) delete params[f];
-        if (isMyself) for (let f of User.uneditableFieldsForMyself) delete params[f];
-        return params;
-    }
-
     User.prototype.verifyPassword = function(passwordToVerify){
         return bcrypt.compareSync(passwordToVerify, this.getDataValue('password'));
     };

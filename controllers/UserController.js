@@ -3,6 +3,7 @@ const LoginSession = $models.LoginSession;
 const LoginRecord = $models.LoginRecord;
 
 const {e, val_e, w} = require("./common");
+const {listingAPI, getDisplayObject, filterQueries} = require("./common");
 
 /**
  * POST	/login
@@ -93,7 +94,7 @@ exports.logout = async (req, res) => { await w(res, async (t) => {
 exports.getMyself = async (req, res) => { await w(res, async (t) => {
     const user = res.locals.user;
     if (user){
-        return res.send(user.getDisplayedObject());
+        return res.send(getDisplayObject(user, 'User'));
     }
     return res.send({});
 })};
@@ -102,14 +103,14 @@ exports.getMyself = async (req, res) => { await w(res, async (t) => {
  * PUT /myself
  */
 exports.setMyself = async (req, res) => { await w(res, async (t) => {
-    const params = User.getFilteredParams(req.body, true, false);
+    const params = filterQueries(req.body, 'User', false, 'locked_fields_myself');
     const user = res.locals.user;
     try{
         await user.update(params, t);
     }catch(error){
         return val_e(res, error);
     }
-    return res.send(user.getDisplayedObject());
+    return res.send(getDisplayObject(user, 'User'));
 })};
 
 /**
@@ -145,7 +146,8 @@ exports.setMyPassword = async (req, res) => { await w(res, async (t) => {
  * POST /user
  */
 exports.newUser = async (req, res) => { await w(res, async (t) => {
-    const params = User.getFilteredParams(req.body, false, true);
+    
+    const params = filterQueries(req.body, 'User', true, 'locked_fields_root');
 
     //Create with validation
     let user;
@@ -156,7 +158,7 @@ exports.newUser = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return new user obj if success
-    return res.send(user.getDisplayedObject());
+    return res.send(getDisplayObject(user, 'User'));
     
 })};
 
@@ -164,6 +166,9 @@ exports.newUser = async (req, res) => { await w(res, async (t) => {
  * GET /user
  */
 exports.getUsers = async (req, res) => { await w(res, async (t) => {
+
+    let response = await listingAPI(req, res, 'User', {});
+    return response;
 
 })};
 
@@ -182,7 +187,7 @@ exports.getUser = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return Data
-    return res.send(user.getDisplayedObject());
+    return res.send(getDisplayObject(user, 'User'));
 
 })};
 
@@ -191,7 +196,7 @@ exports.getUser = async (req, res) => { await w(res, async (t) => {
  */
 exports.setUser = async (req, res) => { await w(res, async (t) => {
 
-    const params = User.getFilteredParams(req.body, false, false);
+    const params = filterQueries(req.body, 'User', false, 'locked_fields_root');
     const user = await User.findOne({
         where: {id: req.params.user_id, is_deleted: false},
     }, t);
@@ -209,7 +214,7 @@ exports.setUser = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return new user obj if success
-    return res.send(user.getDisplayedObject());
+    return res.send(getDisplayObject(user, 'User'));
 
 })};
 
@@ -228,7 +233,7 @@ exports.removeUser = async (req, res) => { await w(res, async (t) => {
     }
 
     //Copy user obj
-    const old_user = { ... user.getDisplayedObject() };
+    const old_user = { ... getDisplayObject(user, 'User') };
 
     //Soft delete user
     user.update({is_deleted: true});
