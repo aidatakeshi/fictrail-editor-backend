@@ -4,14 +4,14 @@ exports.validations = {
     string: {
         notEmpty: {msg: "Should Not Be Empty"},
         len: {
-            args: [1, 255],
+            args: [0, 255],
             msg: "Maximum Length is 255 Characters",
         },
     },
     id: {
         notEmpty: {msg: "Should Not Be Empty"},
         len: {
-            args: [1, 255],
+            args: [0, 255],
             msg: "Maximum Length is 255 Characters",
         },
         notNull: { msg: 'ID Required' },
@@ -29,5 +29,22 @@ exports.validations = {
     user_rights: {
         isIn: [['owner', 'editor', 'viewer']],
         msg: "Should be owner/editor/viewer",
+    },
+    latitude: {
+        isDecimal: { msg: 'Number Required' },
+        min: {
+            args: -90,
+            msg: "Should be -90 to +90"
+        },
+    },
+    longitude: {
+        isDecimal: { msg: 'Number Required' },
+        min: {
+            args: -180,
+            msg: "Should be -180 to +180"
+        },
+    },
+    decimal: {
+        isDecimal: { msg: 'Number Required' },
     },
 };

@@ -11,6 +11,9 @@ const AuthMiddleware = require('../middlewares/AuthMiddleware');
 const _auth = {
     root: AuthMiddleware('root'),
     user: AuthMiddleware('user'),
+    viewer: AuthMiddleware('viewer'),
+    editor: AuthMiddleware('editor'),
+    owner: AuthMiddleware('owner'),
 };
 
 /**
@@ -39,13 +42,13 @@ const ProjectController = require('../controllers/ProjectController');
 
 router.post('/project', _auth.user, ProjectController.newProject);
 router.get('/project', _auth.user, ProjectController.getProjects);
-router.get('/project/:project_id', _auth.user, ProjectController.getProject);
-router.put('/project/:project_id', _auth.user, ProjectController.setProject);
-router.delete('/project/:project_id', _auth.user, ProjectController.removeProject);
-router.put('/project/:project_id/assign', _auth.user, ProjectController.assignProject);
-router.put('/project/:project_id/unassign', _auth.user, ProjectController.unassignProject);
-router.get('/project/:project_id/settings', _auth.user, ProjectController.getProjectSettings);
-router.put('/project/:project_id/settings', _auth.user, ProjectController.setProjectSettings);
+router.get('/project/:project_id', _auth.viewer, ProjectController.getProject);
+router.put('/project/:project_id', _auth.editor, ProjectController.setProject);
+router.delete('/project/:project_id', _auth.owner, ProjectController.removeProject);
+router.put('/project/:project_id/assign', _auth.owner, ProjectController.assignProject);
+router.put('/project/:project_id/unassign', _auth.owner, ProjectController.unassignProject);
+router.get('/project/:project_id/settings', _auth.viewer, ProjectController.getProjectSettings);
+router.put('/project/:project_id/settings', _auth.editor, ProjectController.setProjectSettings);
 
 /**
  * Misc

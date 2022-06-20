@@ -149,6 +149,10 @@ exports.newUser = async (req, res) => { await w(res, async (t) => {
 
     const params = filterQueries(req.body, 'User', true, 'locked_fields_root');
 
+    //Set created_at, created_by
+    params.created_by = res.locals.user_id;
+    params.created_at = Math.floor(new Date().getTime() / 1000);
+
     //Create with validation
     let user;
     try{

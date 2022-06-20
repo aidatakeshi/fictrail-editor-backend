@@ -1,5 +1,6 @@
 const User = $models.User;
 const Project = $models.Project;
+const ProjectAssignment = $models.ProjectAssignment;
 const LoginSession = $models.LoginSession;
 const LoginRecord = $models.LoginRecord;
 
@@ -78,13 +79,44 @@ module.exports = function(restriction = "user"){
 
         //Pass User Data to Controller
         res.locals.user = user;
-        res.locals.id = user_id;
+        res.locals.user_id = user_id;
         res.locals.is_root_user = is_root_user;
         res.locals.can_create_new_project = can_create_new_project;
 
         //Check User Rights in the Project
-        if (project_id && res.locals.id){
+        if (project_id && res.locals.user_id){
+
             //...is_project_public, user_rights_in_project
+            const project = await Project.findOne({
+                where: {id: project_id, is_deleted: false},
+            }, t);
+
+            //Project not found -> 404
+            if (!project){
+                return e(404, res, "project_not_found", "Project Not Found");
+            }
+
+            //is_project_public
+            is_project_public = project.is_public;
+
+            //Check user rights
+            if (res.locals.is_root_user){
+                user_rights_in_project = 'root';
+            }else{
+                const project_assignment = await ProjectAssignment.findOne({
+                    where: {project_id, user_id},
+                }, t);
+                if (project_assignment){
+                    user_rights_in_project = project_assignment.rights;
+                }else{
+                    user_rights_in_project = null;
+                }
+            }
+
+            //Pass Project Data to Controller
+            res.locals.project = project;
+            res.locals.project_id = project.id;
+            res.locals.rights = user_rights_in_project;
 
         }
 
@@ -99,6 +131,7 @@ module.exports = function(restriction = "user"){
         //owner
         else if (restriction == "owner" && project_id){
             if (user_rights_in_project == "owner"){}
+            else if (user_rights_in_project == "root"){}
             else{
                 return e(403, res, "project_owner_only", "Project Owner Only");
             }
@@ -107,6 +140,7 @@ module.exports = function(restriction = "user"){
         else if (restriction == "editor" && project_id){
             if (user_rights_in_project == "owner"){}
             else if (user_rights_in_project == "editor"){}
+            else if (user_rights_in_project == "root"){}
             else{
                 return e(403, res, "project_editor_only", "Project Editor Only");
             }

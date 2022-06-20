@@ -20,16 +20,29 @@ module.exports = (sequelize) => {
     const model_attributes = {
         id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
         project_id: { type: dt.STRING },
-        language_default: { type: dt.TEXT, allowNull: true, validate: validations.name },
+        language_default: { type: dt.TEXT, validate: validations.name },
         language_alt: { type: dt.JSON },
-        latitude_min: { type: dt.DOUBLE },
-        latitude_max: { type: dt.DOUBLE },
-        longitude_min: { type: dt.DOUBLE },
-        longitude_max: { type: dt.DOUBLE },
-        earth_radius: { type: dt.DOUBLE },
+        latitude_min: { type: dt.DOUBLE, validate: validations.latitude },
+        latitude_max: { type: dt.DOUBLE, validate: validations.latitude },
+        longitude_min: { type: dt.DOUBLE, validate: validations.longitude },
+        longitude_max: { type: dt.DOUBLE, validate: validations.longitude },
+        earth_radius: { type: dt.DOUBLE, validate: validations.decimal },
     };
 
     ProjectSettings.init(model_attributes, model_options);
+
+    /**
+     * Default Settings
+     */
+    ProjectSettings.default = {
+        language_default: "English",
+        language_alt: {},
+        latitude_min: -25,
+        latitude_max: -15,
+        longitude_min: 42,
+        longitude_max: 50,
+        earth_radius: 6371.0088,
+    };
 
     /**
      * Model Specific Methods
