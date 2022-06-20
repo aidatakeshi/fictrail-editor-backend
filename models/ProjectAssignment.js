@@ -21,7 +21,7 @@ module.exports = (sequelize) => {
         id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
         user_id: { type: dt.STRING },
         project_id: { type: dt.STRING },
-        rights: { type: dt.STRING, validation: validations.user_rights },
+        rights: { type: dt.STRING },
     };
 
     ProjectAssignment.init(model_attributes, model_options);

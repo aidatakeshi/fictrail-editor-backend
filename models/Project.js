@@ -20,9 +20,9 @@ module.exports = (sequelize) => {
     const model_attributes = {
         id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
         id: { type: dt.STRING, allowNull: false, unique: true, validate: validations.id },
-        name: { type: dt.TEXT, allowNull: true, validate: validations.name },
-        name_l: { type: dt.JSON },
-        is_public: { type: dt.BOOLEAN, validate: validations.boolean },
+        name: { type: dt.TEXT, allowNull: false, validate: validations.name },
+        name_l: { type: dt.JSON, allowNull: false, validate: validations.name_l_json },
+        is_public: { type: dt.BOOLEAN, allowNull: false, validate: validations.boolean },
         //
         created_at: { type: dt.BIGINT },
         created_by: { type: dt.STRING },

@@ -1,57 +1,62 @@
 const { DataTypes } = require('sequelize');
 
+const empty = function(value){
+    if (value === ""){
+        throw new Error("Should Not Be Empty");
+    }
+};
+
+const length255 = function(value){
+    if (value.length > 255){
+        throw new Error("Maximum Length is 255 Characters");
+    }
+};
+
+const number = function(value){
+    if (isNaN(value) || value === null){
+        throw new Error("Number Required");
+    }
+};
+
 exports.validations = {
-    string: {
-        notEmpty: {msg: "Should Not Be Empty"},
-        len: {
-            args: [0, 255],
-            msg: "Maximum Length is 255 Characters",
-        },
-    },
-    id: {
-        notEmpty: {msg: "Should Not Be Empty"},
-        len: {
-            args: [0, 255],
-            msg: "Maximum Length is 255 Characters",
-        },
-        notNull: { msg: 'ID Required' },
-    },
+    id: {empty, length255},
+    name: {empty},
     boolean: {
-        isBoolean(value) {
+        boolean(value) {
             if (value !== true && value !== false) {
                 throw new Error("Boolean Required");
             }
         }
     },
-    decimal: {
-        isDecimal: { msg: 'Number Required' },
-    },
-    name: {
-        notEmpty: {msg: "Should Not Be Empty"},
-    },
+    decimal: {number},
     email: {
         isEmail: {msg: "Invalid Email Address"}
     },
     password: {
-        notEmpty: { msg: 'Password Required and Should be 8 ~ 255 Characters' },
-        notNull: { msg: 'Password Required and Should be 8 ~ 255 Characters' },
-    },
-    user_rights: {
-        isIn: [['owner', 'editor', 'viewer']],
-        msg: "Should be owner/editor/viewer",
-    },
-    latitude: {
-        isDecimal: { msg: 'Number Required' },
-        min: {
-            args: -90,
-            msg: "Should be -90 to +90"
+        empty,
+        passwordLength(value){
+            if (value == '#'){
+                throw new Error("Password Should be 8 ~ 255 Characters");
+            }
         },
     },
-    longitude: {
-        isDecimal: { msg: 'Number Required' },
-        min: {
-            args: -180,
-            msg: "Should be -180 to +180"
+    name_l_json: {
+        invalidObject(value){
+            let valid = true;
+            if (Array.isArray(value)) valid = false;
+            else if (value === null) valid = false;
+            else if (typeof value !== 'object') valid = false;
+            if (!valid){
+                throw new Error("Invalid Object");
+            }
+        },
+        empty(value){
+            for (let f in value){
+                let subvalue = value[f];
+                if (subvalue === null || subvalue === ""){
+                    throw new Error("Subvalues Should Not be Empty or Null");
+                }
+            }
         },
     },
 };

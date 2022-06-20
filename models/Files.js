@@ -19,7 +19,7 @@ module.exports = (sequelize) => {
 
     const model_attributes = {
         id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
-        id: { type: dt.STRING, unique: true, validate: validations.string },
+        id: { type: dt.STRING, unique: true, validate: validations.id },
         project_id: { type: dt.STRING },
         uploader_id: { type: dt.STRING },
         directory: { type: dt.STRING },

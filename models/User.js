@@ -22,27 +22,30 @@ module.exports = (sequelize) => {
     };
 
     const model_attributes = {
-        id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
-        id: { type: dt.STRING, allowNull: false, unique: true, validate: validations.id },
+        id_auto: {
+            type: dt.BIGINT, autoIncrement: true, primaryKey: true,
+        },
+        id: {
+            type: dt.STRING, allowNull: false, unique: true, validate: validations.id,
+        },
         name: {
-            type: dt.TEXT, allowNull: true, validate: validations.name,
+            type: dt.TEXT, validate: validations.name,
             get(){ return this.getDataValue('name') || this.getDataValue('id') },
         },
-        email: { type: dt.TEXT, allowNull: true, validate: validations.email },
+        email: { type: dt.TEXT, validate: validations.email },
         password: {
             type: dt.STRING, allowNull: false, validate: validations.password,
             set(value){
-                if (value.length < 8 || value.length > 255){
-                    this.setDataValue('password', null);
-                }else{
-                    this.setDataValue('password', bcrypt.hashSync(value, 10));
-                }
+                if (value === null || value === '') return this.setDataValue('password', '');
+                if (value.length < 8) return this.setDataValue('password', '#');
+                if (value.length > 255) return this.setDataValue('password', '#');
+                return this.setDataValue('password', bcrypt.hashSync(value, 10));
             },
         },
         last_login_attempt: { type: dt.BIGINT },
-        is_root_user: { type: dt.BOOLEAN, validate: validations.boolean },
-        can_create_new_project: { type: dt.BOOLEAN, validate: validations.boolean },
-        is_enabled: { type: dt.BOOLEAN, validate: validations.boolean },
+        is_root_user: { type: dt.BOOLEAN, allowNull: false, validate: validations.boolean },
+        can_create_new_project: { type: dt.BOOLEAN, allowNull: false, validate: validations.boolean },
+        is_enabled: { type: dt.BOOLEAN, allowNull: false, validate: validations.boolean },
         //
         created_at: { type: dt.BIGINT },
         created_by: { type: dt.STRING },
