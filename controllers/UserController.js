@@ -217,7 +217,7 @@ exports.setUser = async (req, res) => { await w(res, async (t) => {
         return val_e(res, error);
     }
 
-    //Return new user obj if success
+    //Return user obj if success
     return res.send(getDisplayObject(user, 'User'));
 
 })};
@@ -240,7 +240,7 @@ exports.removeUser = async (req, res) => { await w(res, async (t) => {
     const old_user = { ... getDisplayObject(user, 'User') };
 
     //Soft delete user
-    user.update({is_deleted: true});
+    await user.update({is_deleted: true}, t);
 
     //Return old user obj
     return res.send(old_user);

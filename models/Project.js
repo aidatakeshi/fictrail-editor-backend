@@ -22,7 +22,7 @@ module.exports = (sequelize) => {
         id: { type: dt.STRING, allowNull: false, unique: true, validate: validations.id },
         name: { type: dt.TEXT, allowNull: true, validate: validations.name },
         name_l: { type: dt.JSON },
-        is_public: { type: dt.BOOLEAN },
+        is_public: { type: dt.BOOLEAN, validate: validations.boolean },
         //
         created_at: { type: dt.BIGINT },
         created_by: { type: dt.STRING },
@@ -37,7 +37,7 @@ module.exports = (sequelize) => {
     Project.hidden_fields = ['id_auto', 'is_deleted'];
     Project.locked_fields = [];
 
-    Project.sorts = { //e.g. "id_asc", "id_desc"
+    Project.sorts = { //e.g. "id:asc", "id:desc"
         id: "LOWER(id)",
         name: "LOWER(name)",
     };

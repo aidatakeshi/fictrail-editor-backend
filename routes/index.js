@@ -47,6 +47,7 @@ router.put('/project/:project_id', _auth.editor, ProjectController.setProject);
 router.delete('/project/:project_id', _auth.owner, ProjectController.removeProject);
 router.put('/project/:project_id/assign', _auth.owner, ProjectController.assignProject);
 router.put('/project/:project_id/unassign', _auth.owner, ProjectController.unassignProject);
+router.get('/project/:project_id/assignment', _auth.owner, ProjectController.getProjectAssignments);
 router.get('/project/:project_id/settings', _auth.viewer, ProjectController.getProjectSettings);
 router.put('/project/:project_id/settings', _auth.editor, ProjectController.setProjectSettings);
 

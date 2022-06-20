@@ -32,7 +32,7 @@ module.exports = (sequelize) => {
     ProjectSettings.init(model_attributes, model_options);
 
     /**
-     * Default Settings
+     * Default Values
      */
     ProjectSettings.default = {
         language_default: "English",
@@ -43,6 +43,12 @@ module.exports = (sequelize) => {
         longitude_max: 50,
         earth_radius: 6371.0088,
     };
+
+    /**
+     * CRUD-Related
+     */
+    ProjectSettings.hidden_fields = ['id_auto'];
+    ProjectSettings.locked_fields = ['project_id'];
 
     /**
      * Model Specific Methods

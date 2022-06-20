@@ -16,6 +16,16 @@ exports.validations = {
         },
         notNull: { msg: 'ID Required' },
     },
+    boolean: {
+        isBoolean(value) {
+            if (value !== true && value !== false) {
+                throw new Error("Boolean Required");
+            }
+        }
+    },
+    decimal: {
+        isDecimal: { msg: 'Number Required' },
+    },
     name: {
         notEmpty: {msg: "Should Not Be Empty"},
     },
@@ -43,8 +53,5 @@ exports.validations = {
             args: -180,
             msg: "Should be -180 to +180"
         },
-    },
-    decimal: {
-        isDecimal: { msg: 'Number Required' },
     },
 };

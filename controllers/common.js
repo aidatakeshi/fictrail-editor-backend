@@ -113,10 +113,9 @@ async function listingAPI(req, res, className, options = {}){
     let $sorts = MyClass.sorts || {};
     let order_by = MyClass.sort_default || "id ASC";
     let sort_query = req.query._sort;
-    if (sort_query){
-        sort_query = sort_query.split('_')
-        let sort_direction = sort_query.pop();
-        let sort_key = sort_query.join('_');
+    if (sort_query = sort_query.split(':')){
+        let sort_direction = sort_query[1] || 'asc';
+        let sort_key = sort_query[0];
         if ($sorts[sort_key]){
             order_by = $sorts[sort_key];
             order_by += (sort_direction == 'desc' ? ' DESC' : ' ASC');

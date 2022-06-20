@@ -40,9 +40,9 @@ module.exports = (sequelize) => {
             },
         },
         last_login_attempt: { type: dt.BIGINT },
-        is_root_user: { type: dt.BOOLEAN },
-        can_create_new_project: { type: dt.BOOLEAN },
-        is_enabled: { type: dt.BOOLEAN },
+        is_root_user: { type: dt.BOOLEAN, validate: validations.boolean },
+        can_create_new_project: { type: dt.BOOLEAN, validate: validations.boolean },
+        is_enabled: { type: dt.BOOLEAN, validate: validations.boolean },
         //
         created_at: { type: dt.BIGINT },
         created_by: { type: dt.STRING },
@@ -60,7 +60,7 @@ module.exports = (sequelize) => {
         'last_login_attempt', 'password', 'is_root_user', 'can_create_new_project', 'is_enabled'
     ];
 
-    User.sorts = { //e.g. "id_asc", "id_desc"
+    User.sorts = { //e.g. "id:asc", "id:desc"
         id: "LOWER(id)",
         name: "LOWER(COALESCE(name,id))",
         email: "email",

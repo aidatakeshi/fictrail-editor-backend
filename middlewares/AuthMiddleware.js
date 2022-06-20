@@ -125,7 +125,7 @@ module.exports = function(restriction = "user"){
         //root
         if (restriction == "root"){
             if (!is_root_user){
-                return e(403, res, "root_user_only", "Root User Only");
+                return e(403, res, "not_root_user", "Not Root User");
             }
         }
         //owner
@@ -133,7 +133,7 @@ module.exports = function(restriction = "user"){
             if (user_rights_in_project == "owner"){}
             else if (user_rights_in_project == "root"){}
             else{
-                return e(403, res, "project_owner_only", "Project Owner Only");
+                return e(403, res, "not_project_owner", "Not Project Owner");
             }
         }
         //editor
@@ -142,7 +142,7 @@ module.exports = function(restriction = "user"){
             else if (user_rights_in_project == "editor"){}
             else if (user_rights_in_project == "root"){}
             else{
-                return e(403, res, "project_editor_only", "Project Editor Only");
+                return e(403, res, "not_project_editory", "Not Project Editor");
             }
         }
         //viewer
@@ -156,7 +156,7 @@ module.exports = function(restriction = "user"){
         //user
         else{
             if (!user_id){
-                return e(401, res, "user_only", "User Only");
+                return e(401, res, "not_valid_user", "Not Valid User");
             }
         }
 
