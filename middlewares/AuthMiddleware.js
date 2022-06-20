@@ -46,7 +46,7 @@ module.exports = function(restriction = "user"){
 
             //Get user instance
             user_id = login_session.user_id;
-            user = await User.findOne({where: {id: user_id, is_deleted: false}}, t);
+            user = await User.findOne({where: {id: user_id, deleted_by: null}}, t);
             is_root_user = user.is_root_user;
             can_create_new_project = user.can_create_new_project;
 
@@ -88,7 +88,7 @@ module.exports = function(restriction = "user"){
 
             //...is_project_public, user_rights_in_project
             const project = await Project.findOne({
-                where: {id: project_id, is_deleted: false},
+                where: {id: project_id},
             }, t);
 
             //Project not found -> 404

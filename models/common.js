@@ -26,7 +26,7 @@ exports.validations = {
             if (value !== true && value !== false) {
                 throw new Error("Boolean Required");
             }
-        }
+        },
     },
     decimal: {number},
     email: {

@@ -6,27 +6,41 @@ module.exports = (sequelize) => {
 
     class Project extends Model {
         static associate(models) {
-            // define association here
+            models.Project.hasMany(models.ProjectAssignment, {foreignKey: 'project_id'});
         }
     }
+
+    const model_attributes = {
+        id: {
+            type: dt.STRING, allowNull: false, primaryKey: true, unique: true, validate: validations.id,
+        },
+        name: { type: dt.TEXT, allowNull: false, validate: validations.name },
+        name_l: {
+            type: dt.JSON, allowNull: false, defaultValue: {}, validate: validations.name_l_json,
+        },
+        is_public: {
+            type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: validations.boolean,
+        },
+        //
+        created_at: { type: dt.BIGINT },
+        created_by: { type: dt.STRING },
+        deleted_at: { type: dt.BIGINT },
+        deleted_by: { type: dt.STRING },
+    };
+
+    const defaultScope = {
+        where: { deleted_by: null },
+    };
+
+    const scopes = {};
 
     const model_options = {
         modelName: 'Project',
         tableName: 'projects',
         timestamps: false,
+        defaultScope,
+        scopes,
         sequelize,
-    };
-
-    const model_attributes = {
-        id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
-        id: { type: dt.STRING, allowNull: false, unique: true, validate: validations.id },
-        name: { type: dt.TEXT, allowNull: false, validate: validations.name },
-        name_l: { type: dt.JSON, allowNull: false, validate: validations.name_l_json },
-        is_public: { type: dt.BOOLEAN, allowNull: false, validate: validations.boolean },
-        //
-        created_at: { type: dt.BIGINT },
-        created_by: { type: dt.STRING },
-        is_deleted: { type: dt.BOOLEAN },
     };
 
     Project.init(model_attributes, model_options);
@@ -34,33 +48,36 @@ module.exports = (sequelize) => {
     /**
      * CRUD-Related
      */
-    Project.hidden_fields = ['id_auto', 'is_deleted'];
-    Project.locked_fields = [];
-
     Project.sorts = { //e.g. "id:asc", "id:desc"
-        id: "LOWER(id)",
-        name: "LOWER(name)",
+        id: ($DIR) => [
+            [sequelize.fn('LOWER', sequelize.col('id')), $DIR],
+        ],
+        name: ($DIR) => [
+            [sequelize.fn('LOWER', sequelize.fn('COALESCE', sequelize.col('name'), sequelize.col('id'))), $DIR],
+        ],
     };
-    Project.sort_default = "id_auto DESC";
+    Project.sort_default = [["created_at", "ASC"]];
 
     Project.filters = {
         id: (val) => ({
-            statement: `LOWER(id) LIKE ?`, replacement: [`${val.toLowerCase()}%`],
+            id: { [Op.iLike]: `${val}%` }
         }),
         id_contains: (val) => ({
-            statement: `LOWER(id) LIKE ?`, replacement: [`%${val.toLowerCase()}%`],
+            id: { [Op.iLike]: `%${val}%` }
         }),
         name: (val) => ({
-            statement: `LOWER(name) LIKE ?`, replacement: [`${val.toLowerCase()}%`],
+            name: { [Op.iLike]: `${val}%` }
         }),
         name_contains: (val) => ({
-            statement: `LOWER(name) LIKE ?`, replacement: [`%${val.toLowerCase()}%`],
+            name: { [Op.iLike]: `%${val}%` }
         }),
+        public: () => ({is_public: true}),
+        private: () => ({is_public: false}),
         public: () => ({ statement: `is_public = TRUE`, replacement: [], }),
         private: () => ({ statement: `is_public = FALSE`, replacement: [], }),
-        created_before: (val) => ({ statement: `created_at <= ?`, replacement: [val], }),
-        created_after: (val) => ({ statement: `created_at >= ?`, replacement: [val], }),
-        created_by: (val) => ({ statement: `created_by = ?`, replacement: [val], }),
+        created_before: (val) => ({created_at: {[Op.lte]: val}}),
+        created_after: (val) => ({created_at: {[Op.gte]: val}}),
+        created_by: (val) => ({created_by: val}),
     };
 
     Project.limit_default = 25;
@@ -69,7 +86,17 @@ module.exports = (sequelize) => {
     /**
      * Model Specific Methods
      */
-    
+    Project.prototype.display = function(){
+        let obj = { ...this.toJSON() }
+        for(let f of ['deleted_at', 'deleted_by']) delete obj[f];
+        return obj;
+    };
+
+    Project.filterQueries = function(queries, isNew){
+        if (!isNew) delete queries.id;
+        for (let f of ['created_at', 'created_by', 'deleted_at', 'deleted_by']) delete queries[f];
+        return queries;
+    };
 
     //Return Model Class
     return Project;

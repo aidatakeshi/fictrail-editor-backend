@@ -1,4 +1,4 @@
-const { QueryTypes } = require('sequelize');
+const { QueryTypes, Op } = require('sequelize');
 
 /**
  * Show Error as JSON Response [showError / e]
@@ -45,144 +45,107 @@ exports.wrapperForController = wrapperForController;
 exports.w = wrapperForController;
 
 /**
- * Get Object for Model Instance (filtered unwanted fields for display)
- * [Required Attributes in Class] hidden_fields
+ * API For Listing
+ * [options]
+ * mapping (function: instance, req)
+ * where (array or obj)
+ * include (array or obj)
  */
-function getDisplayObject(instance, className, altAttribute = "hidden_fields"){
-    const MyClass = $models[className];
-    let obj = instance.toJSON();
-    for (let field of MyClass[altAttribute]) delete obj[field];
-    return obj;
-}
-exports.getDisplayObject = getDisplayObject;
-
-/**
- * Get Filtered Queries for POST/PUT Model Instance (filter non-editable fields)
- * [Required Attributes in Class] locked_fields
- */
-function filterQueries(queries, className, isNew, altAttribute = "locked_fields"){
-    const MyClass = $models[className];
-    if (!isNew) delete queries.id;
-    for (let f of ['id_auto', 'created_at', 'created_by', 'is_deleted']) delete queries[f];
-    for (let f of MyClass[altAttribute]) delete queries[f];
-    return queries;
-}
-exports.filterQueries = filterQueries;
-
-/**
- * API - List for Model Instances
- * [Required Attributes in Class]
- * sorts, sort_default, filters, limit_default, limit_max, hidden_fields*
- * [Optional Methods in Class]
- * additional_data (function, params: instance, req)
- * [Options]
- * alt_hidden_fields (string)
- * append_where (string/array)
- * append_where_replacement (string/array)
- * custom_mapping (function, params: instance, req)
- * additional_data (class method takes priority)
- * custom_select (string)
- * custom_join_statement (string)
- */
-async function listingAPI(req, res, className, options = {}){
+async function APIforListing(req, res, className, options = {}){
 
     const MyClass = $models[className];
-    const tableName = MyClass.tableName;
-    let where = "is_deleted = FALSE";
-    let replacements = [];
 
-    //Make Filter (query: *varies)
+    //Handle Filters
+    let filtersApplied = [];
     for (let key in req.query){
         let value = req.query[key];
         let $filters = MyClass.filters || {};
         if ($filters[key]){
-            let {statement, replacement} = $filters[key](value);
-            where += ` AND (${statement})`;
-            replacements = replacements.concat(replacement);
+            filtersApplied.push($filters[key](value));
         }
     }
 
-    let append_where = Array.isArray(options.append_where) ? options.append_where
-    : (options.append_where ? [options.append_where] : []);
-    let append_where_replacement = Array.isArray(options.append_where_replacement) ? options.append_where_replacement
-    : (options.append_where_replacement ? [options.append_where_replacement] : []);
-    for (let item of append_where) where += ` AND (${item})`;
-    for (let item of append_where_replacement) replacements.push(item);
+    //Handle options.where (additional where statements)
+    if (options.where){
+        if (!Array.isArray(options.where)) options.where = [options.where];
+        for (let item of options.where){
+            filtersApplied.push(item);
+        }
+    }
+
+    //Handle options.include (eager loading other associated model instances)
+    let include = [];
+    if (options.include){
+        if (!Array.isArray(options.include)) options.include = [options.include];
+        for (let item of options.include){
+            include.push(item);
+        }
+    }
 
     //Sort (query: _sort)
     let $sorts = MyClass.sorts || {};
-    let order_by = MyClass.sort_default || "id ASC";
+    let order = MyClass.sort_default || [["created_at", "ASC"]];
     let sort_query = req.query._sort;
-    if (sort_query = sort_query.split(':')){
-        let sort_direction = sort_query[1] || 'asc';
+    if (sort_query){
+        sort_query = sort_query.split(':');
+        let sort_direction = sort_query[1] || 'ASC';
+        if (sort_direction.toUpperCase() == "ASC") sort_direction = "ASC";
+        else sort_direction = "DESC";
         let sort_key = sort_query[0];
         if ($sorts[sort_key]){
-            order_by = $sorts[sort_key];
-            order_by += (sort_direction == 'desc' ? ' DESC' : ' ASC');
+            order = $sorts[sort_key](sort_direction);
         }
     }
 
     //Make Count
-    const join_statement = options.custom_join_statement || '';
-    const query_count = `SELECT COUNT(id) FROM ${tableName} ${join_statement} WHERE ${where}`;
-    const count_result = await $models.sequelize.query(query_count, {
-        replacements,
-        type: QueryTypes.SELECT,
+    const count = await MyClass.count({
+        where: {[Op.and]: filtersApplied},
     });
-    const count = count_result[0].count;
 
-    //If Have Results
-    if (count){
-        //Handle Pagination
-        let limit = parseInt(req.query._limit) || MyClass.limit_default || 25;
-        if (MyClass.limit_max){
-            if (limit > MyClass.limit_max) limit = MyClass.limit_max;
-        }
-        const pages = Math.ceil(count / limit);
-        let page = parseInt(req.query._page) || 1;
-        page = Math.min(Math.max(page, 1), pages);
-        const offset = limit * (page - 1);
-        const limit_offset = `LIMIT ${limit} OFFSET ${offset}`;
-        
-        //Do Search
-        const select = options.custom_select || '*';
-        const query_select = `SELECT ${select} FROM ${tableName} ${join_statement}`
-        + ` WHERE ${where} ORDER BY ${order_by} ${limit_offset}`;
-        const instances = await $models.sequelize.query(query_select, {
-            replacements,
-            type: QueryTypes.SELECT,
-            mapToModel: true,
-            model: MyClass,
-        });
-        const from = offset + 1;
-        const to = offset + instances.length;
-
-        //Handle Mapping & Additional Data
-        let data;
-        if (!options.custom_mapping){
-            data = instances.map(instance => getDisplayObject(instance, className, options.alt_hidden_fields));
-        }else{
-            data = instances.map(instance => options.custom_mapping(instance, req));
-        }
-        const additional_data_func = MyClass.additional_data || options.additional_data;
-        if (additional_data_func){
-            let a_data = instances.map(instance => additional_data_func(instance, req));
-            for (let i in a_data){
-                data[i] = {...data[i], ...a_data[i]};
-            }
-        }
-
-        //Return Data
-        return res.send({ pages, page, limit, from, to, count, data });
-    }
-
-    //If No Results
-    else{
+    //If No Results...
+    if (!count){
         return res.send({
             pages: null, page: null, limit: null, from: null, to: null, count: 0, data: [],
         });
     }
 
+    //If Have Results...
+
+    //Determine Limit
+    let limit = parseInt(req.query._limit) || MyClass.limit_default;
+    if (MyClass.limit_max){
+        if (!limit || limit > MyClass.limit_max) limit = MyClass.limit_max;
+    }
+
+    //Do Pagination
+    let pages, page, offset, from, to;
+    if (limit){
+        pages = Math.ceil(count / limit);
+        page = parseInt(req.query._page) || 1;
+        page = Math.min(Math.max(page, 1), pages);
+        offset = limit * (page - 1);
+        from = offset + 1;
+        to = Math.min(limit * page, count);
+    }else{
+        [pages, page, limit, offset, from, to] = [null, null, null, null, null, null];
+    }
     
+    //Do Search
+    const instances = await MyClass.findAll({
+        include, order, limit, offset,
+        where: {[Op.and]: filtersApplied},
+    });
+
+    //Handle Mapping & Additional Data
+    let data;
+    if (!options.mapping){
+        data = instances.map(instance => instance.toJSON());
+    }else{
+        data = instances.map(instance => options.mapping(instance, req));
+    }
+
+    //Return Data
+    return res.send({ pages, page, limit, from, to, count, data });
+
 }
-exports.listingAPI = listingAPI;
+exports.APIforListing = APIforListing;

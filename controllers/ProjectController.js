@@ -3,10 +3,12 @@ const ProjectAssignment = $models.ProjectAssignment;
 const ProjectSettings = $models.ProjectSettings;
 const User = $models.User;
 
-const { QueryTypes } = require('sequelize');
+const { QueryTypes, Op } = require('sequelize');
 
 const {e, val_e, w} = require("./common");
-const {listingAPI, getDisplayObject, filterQueries} = require("./common");
+const {APIforListing} = require("./common");
+
+const { v4: uuid } = require('uuid');
 
 /**
  * Note: 404 "project_not_found" already handled in AuthMiddleware
@@ -22,14 +24,14 @@ exports.newProject = async (req, res) => { await w(res, async (t) => {
         return e(403, res, "create_new_project_not_allowed", "Creating New Project Not Allowed");
     }
 
-    const params = filterQueries(req.body, 'Project', true);
+    const params = Project.filterQueries(req.body, true);
 
     //Set created_at, created_by
     params.created_by = res.locals.user_id;
     params.created_at = Math.floor(new Date().getTime() / 1000);
 
     //Create project with validation
-    let project, project_settings;
+    let project;
     try{
         project = await Project.create(params, t);
     }catch(error){
@@ -37,11 +39,15 @@ exports.newProject = async (req, res) => { await w(res, async (t) => {
     }
 
     //Create project_settings with default value
-    let params_settings = { ...ProjectSettings.default, project_id: params.id };
+    let params_settings = {
+        ...ProjectSettings.default,
+        id: params.id,
+        project_id: params.id,
+    };
     project_settings = await ProjectSettings.create(params_settings, t);
 
     //Return new project obj if success
-    return res.send(getDisplayObject(project, 'Project'));
+    return res.send(project.display());
 
 })};
 
@@ -52,18 +58,43 @@ exports.getProjects = async (req, res) => { await w(res, async (t) => {
 
     //Not root user: Only list projects assigned to the user, and public projects
     if (!res.locals.is_root_user){
-        let response = await listingAPI(req, res, 'Project', {
-            custom_select: 'projects.*, project_assignments.rights as my_rights',
-            custom_join_statement: 'LEFT JOIN project_assignments ON projects.id = project_assignments.project_id',
-            append_where: 'user_id = ? or is_public = true',
-            append_where_replacement: res.locals.user_id,
+        //Get Project IDs of Projects Assigned to the User
+        const project_ids_assigned = await ProjectAssignment.findAll({
+            attributes: ['project_id'], where: {user_id: res.locals.user_id},
+        })
+        let project_ids = project_ids_assigned.map((instance) => instance.project_id);
+        //Get Project IDs of Public Projects
+        const project_ids_public = await Project.findAll({
+            attributes: ['id'], where: {is_public: true},
+        })
+        project_ids = project_ids.concat(project_ids_public.map((instance) => instance.id));
+        //Get Projects & ProjectAssignments
+        let response = await APIforListing(req, res, 'Project', {
+            where: { id: {[Op.in]: project_ids} },
+            include: {
+                model: ProjectAssignment,
+                where: {user_id: res.locals.user_id},
+                required: false,
+            },
+            mapping: (instance) => {
+                let data = instance.display();
+                data.my_rights = null;
+                if (data.ProjectAssignments.length){
+                    data.my_rights = data.ProjectAssignments[0].rights;
+                }
+                delete data.ProjectAssignments;
+                return data;
+            },
         });
         return response;
     }
     //Root user: List all projects
     else{
-        let response = await listingAPI(req, res, 'Project', {
-            additional_data: () => ({my_rights: 'root'}),
+        let response = await APIforListing(req, res, 'Project', {
+            mapping: (instance) => ({
+                ...instance.display(),
+                my_rights: 'root',
+            }),
         });
         return response;
     }
@@ -75,15 +106,18 @@ exports.getProjects = async (req, res) => { await w(res, async (t) => {
  */
 exports.getProject = async (req, res) => { await w(res, async (t) => {
 
+    const project = res.locals.project;
     let data = {
-        ...getDisplayObject(res.locals.project, 'Project'),
+        ...project.display(),
         my_rights: res.locals.rights,
     };
     
     if (req.query.get_settings){
         const project_id = res.locals.project_id;
         const project_settings = await ProjectSettings.findOne({where: {project_id}});
-        data.settings = getDisplayObject(project_settings, 'ProjectSettings');
+        data.settings = project_settings.toJSON();
+        delete data.settings.id;
+        delete data.settings.project_id;
     }
 
     //Return Data
@@ -96,7 +130,7 @@ exports.getProject = async (req, res) => { await w(res, async (t) => {
  */
 exports.setProject = async (req, res) => { await w(res, async (t) => {
 
-    const params = filterQueries(req.body, 'Project', false);
+    const params = Project.filterQueries(req.body, false);
     const project = res.locals.project;
 
     //Update with validation
@@ -108,7 +142,7 @@ exports.setProject = async (req, res) => { await w(res, async (t) => {
 
     //Return data if success
     return res.send({
-        ...getDisplayObject(project, 'Project'),
+        ...project.display(),
         my_rights: res.locals.rights,
     });
 
@@ -123,12 +157,15 @@ exports.removeProject = async (req, res) => { await w(res, async (t) => {
     
     //Copy project obj
     const old_project = {
-        ...getDisplayObject(project, 'Project'),
+        ...project.display(),
         my_rights: res.locals.rights,
     };
 
     //Soft delete project
-    await project.update({is_deleted: true}, t);
+    await project.update({
+        deleted_by: res.locals.user_id,
+        deleted_at: Math.floor(new Date().getTime() / 1000),
+    }, t);
 
     //Return old project obj
     return res.send(old_project);
@@ -155,13 +192,13 @@ exports.assignProject = async (req, res) => { await w(res, async (t) => {
     }
 
     //User not found -> 404
-    const user = await User.findOne({where: {id: user_id, is_deleted: false}}, t);
+    const user = await User.findOne({where: {id: user_id}}, t);
     if (!user){
         return e(404, res, "user_not_found", "User Not Found");
     }
 
     //Update / Insert ProjectAssignment item
-    const data = {user_id, project_id, rights};
+    const data = {id: uuid(), user_id, project_id, rights};
     let project_assignment = await ProjectAssignment.findOne({where: {
         user_id, project_id
     }}, t);
@@ -173,6 +210,7 @@ exports.assignProject = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return Data
+    delete data.id;
     return res.send(data);
 
 })};
@@ -191,7 +229,7 @@ exports.unassignProject = async (req, res) => { await w(res, async (t) => {
     }
     
     //User not found -> 404
-    const user = await User.findOne({where: {id: user_id, is_deleted: false}}, t);
+    const user = await User.findOne({where: {id: user_id}}, t);
     if (!user){
         return e(404, res, "user_not_found", "User Not Found");
     }
@@ -227,7 +265,7 @@ exports.getProjectAssignments = async (req, res) => { await w(res, async (t) => 
     });
 
     //Return Data
-    data = data.map(item => getDisplayObject(item, 'User'));
+    data = data.map(item => item.display());
     return res.send({data});
 
 })};
@@ -245,7 +283,9 @@ exports.getProjectSettings = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return Data
-    return res.send(getDisplayObject(project_settings, 'ProjectSettings'));
+    data = project_settings.toJSON();
+    delete data.id;
+    return res.send(data);
 
 })};
 
@@ -262,7 +302,7 @@ exports.setProjectSettings = async (req, res) => { await w(res, async (t) => {
     }
 
     //Update with validation
-    const params = filterQueries(req.body, 'ProjectSettings', false);
+    const params = ProjectSettings.filterQueries(req.body, false);
     try{
         await project_settings.update(params, t);
     }catch(error){
@@ -270,6 +310,8 @@ exports.setProjectSettings = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return settings obj if success
-    return res.send(getDisplayObject(project_settings, 'ProjectSettings'));
+    data = project_settings.toJSON();
+    delete data.id;
+    return res.send(data);
 
 })};

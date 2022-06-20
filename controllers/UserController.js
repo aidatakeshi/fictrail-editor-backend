@@ -3,7 +3,7 @@ const LoginSession = $models.LoginSession;
 const LoginRecord = $models.LoginRecord;
 
 const {e, val_e, w} = require("./common");
-const {listingAPI, getDisplayObject, filterQueries} = require("./common");
+const {APIforListing} = require("./common");
 
 /**
  * POST	/login
@@ -17,7 +17,7 @@ exports.login = async (req, res) => { await w(res, async (t) => {
     }
 
     //Check if user exists -> 401
-    const user = await User.findOne({where: {id: id, is_deleted: false}});
+    const user = await User.findOne({where: {id}});
     if (!user){
         return e(401, res, "user_not_exists", "User Not Exists");
     }
@@ -36,7 +36,7 @@ exports.login = async (req, res) => { await w(res, async (t) => {
     }
 
     //Update last_login_attempt
-    user.update({last_login_attempt: current_timestamp}, t);
+    await user.update({last_login_attempt: current_timestamp}, t);
 
     //Check if password incorrect -> 401
     if (!user.verifyPassword(password)){
@@ -94,7 +94,7 @@ exports.logout = async (req, res) => { await w(res, async (t) => {
 exports.getMyself = async (req, res) => { await w(res, async (t) => {
     const user = res.locals.user;
     if (user){
-        return res.send(getDisplayObject(user, 'User'));
+        return res.send(user.display());
     }
     return res.send({});
 })};
@@ -103,14 +103,14 @@ exports.getMyself = async (req, res) => { await w(res, async (t) => {
  * PUT /myself
  */
 exports.setMyself = async (req, res) => { await w(res, async (t) => {
-    const params = filterQueries(req.body, 'User', false, 'locked_fields_myself');
     const user = res.locals.user;
     try{
-        await user.update(params, t);
+        let queries = User.filterQueries(req.body, true, false);
+        await user.update(queries, t);
     }catch(error){
         return val_e(res, error);
     }
-    return res.send(getDisplayObject(user, 'User'));
+    return res.send(user.display());
 })};
 
 /**
@@ -127,7 +127,8 @@ exports.setMyPassword = async (req, res) => { await w(res, async (t) => {
     }
     
     //Check if old password incorrect -> 401
-    if (!user.verifyPassword(old_password)){
+    let verification = user.verifyPassword(old_password);
+    if (!verification){
         return e(401, res, "incorrect_old_password", "Incorrect Old Password");
     }
 
@@ -147,7 +148,7 @@ exports.setMyPassword = async (req, res) => { await w(res, async (t) => {
  */
 exports.newUser = async (req, res) => { await w(res, async (t) => {
 
-    const params = filterQueries(req.body, 'User', true, 'locked_fields_root');
+    const params = User.filterQueries(req.body, false, true);
 
     //Set created_at, created_by
     params.created_by = res.locals.user_id;
@@ -162,7 +163,7 @@ exports.newUser = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return new user obj if success
-    return res.send(getDisplayObject(user, 'User'));
+    return res.send(user.display());
     
 })};
 
@@ -171,7 +172,9 @@ exports.newUser = async (req, res) => { await w(res, async (t) => {
  */
 exports.getUsers = async (req, res) => { await w(res, async (t) => {
 
-    let response = await listingAPI(req, res, 'User', {});
+    let response = await APIforListing(req, res, 'User', {
+        mapping: (instance) => instance.display(),
+    });
     return response;
 
 })};
@@ -182,7 +185,7 @@ exports.getUsers = async (req, res) => { await w(res, async (t) => {
 exports.getUser = async (req, res) => { await w(res, async (t) => {
 
     const user = await User.findOne({
-        where: {id: req.params.user_id, is_deleted: false},
+        where: {id: req.params.user_id},
     }, t);
 
     //User not found -> 404
@@ -191,7 +194,7 @@ exports.getUser = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return Data
-    return res.send(getDisplayObject(user, 'User'));
+    return res.send(user.display());
 
 })};
 
@@ -200,9 +203,9 @@ exports.getUser = async (req, res) => { await w(res, async (t) => {
  */
 exports.setUser = async (req, res) => { await w(res, async (t) => {
 
-    const params = filterQueries(req.body, 'User', false, 'locked_fields_root');
+    const params = User.filterQueries(req.body, false, false);
     const user = await User.findOne({
-        where: {id: req.params.user_id, is_deleted: false},
+        where: {id: req.params.user_id},
     }, t);
 
     //User not found -> 404
@@ -218,7 +221,7 @@ exports.setUser = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return user obj if success
-    return res.send(getDisplayObject(user, 'User'));
+    return res.send(user.display());
 
 })};
 
@@ -228,7 +231,7 @@ exports.setUser = async (req, res) => { await w(res, async (t) => {
 exports.removeUser = async (req, res) => { await w(res, async (t) => {
 
     const user = await User.findOne({
-        where: {id: req.params.user_id, is_deleted: false},
+        where: {id: req.params.user_id},
     }, t);
 
     //User not found -> 404
@@ -237,10 +240,13 @@ exports.removeUser = async (req, res) => { await w(res, async (t) => {
     }
 
     //Copy user obj
-    const old_user = { ... getDisplayObject(user, 'User') };
+    const old_user = user.display();
 
     //Soft delete user
-    await user.update({is_deleted: true}, t);
+    await user.update({
+        deleted_by: res.locals.user_id,
+        deleted_at: Math.floor(new Date().getTime() / 1000),
+    }, t);
 
     //Return old user obj
     return res.send(old_user);

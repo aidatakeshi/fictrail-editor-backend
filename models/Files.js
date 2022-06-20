@@ -27,7 +27,8 @@ module.exports = (sequelize) => {
         mimetype: { type: dt.STRING },
         size: { type: dt.BIGINT },
         upload_time: { type: dt.BIGINT },
-        is_deleted: { type: dt.BOOLEAN },
+        deleted_at: { type: dt.BIGINT },
+        deleted_by: { type: dt.STRING },
     };
 
     Files.init(model_attributes, model_options);

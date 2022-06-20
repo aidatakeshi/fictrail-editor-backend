@@ -37,7 +37,7 @@ module.exports = (sequelize) => {
     };
 
     const model_attributes = {
-        id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
+        id: { type: dt.STRING, allowNull: false, primaryKey: true, unique: true },
         project_id: { type: dt.STRING },
         language_default: { type: dt.TEXT, allowNull: false, validate: validations.name },
         language_alt: { type: dt.JSON, allowNull: false, validate: validations.name_l_json },
@@ -72,6 +72,10 @@ module.exports = (sequelize) => {
     /**
      * Model Specific Methods
      */
+    ProjectSettings.filterQueries = function(queries){
+        for (let f of ['id', 'project_id']) delete queries[f];
+        return queries;
+    };
     
     //Return Model Class
     return ProjectSettings;
