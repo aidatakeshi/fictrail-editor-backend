@@ -6,7 +6,7 @@ const User = $models.User;
 const { QueryTypes, Op } = require('sequelize');
 
 const {e, val_e, w} = require("./common");
-const {APIforListing} = require("./common");
+const {APIforListing, APIforSavingWithHistory} = require("./common");
 
 const { v4: uuid } = require('uuid');
 
@@ -145,20 +145,18 @@ exports.getProject = async (req, res) => { await w(res, async (t) => {
  */
 exports.setProject = async (req, res) => { await w(res, async (t) => {
 
-    const params = Project.filterQueries(req.body, false);
-    const project = res.locals.project;
+    const filteredQueries = Project.filterQueries(req.body, false);
+    const project = await Project.scope('+history').findOne({
+        where: {id: res.locals.project_id},
+    }, t);
 
-    //Update with validation
-    try{
-        await project.update(params, t);
-    }catch(error){
-        return val_e(res, error);
-    }
-
-    //Return data if success
-    return res.send({
-        ...project.display(),
-        my_rights: res.locals.rights,
+    //Proceed
+    return APIforSavingWithHistory(req, res, project, filteredQueries, {
+        mapping_history: (project) => project.display(),
+        mapping: (project) => ({
+            ...project.display(),
+            my_rights: res.locals.rights,
+        }),
     });
 
 })};
@@ -345,23 +343,24 @@ exports.getProjectSettings = async (req, res) => { await w(res, async (t) => {
 exports.setProjectSettings = async (req, res) => { await w(res, async (t) => {
 
     const project_id = res.locals.project_id;
-    const project_settings = await ProjectSettings.findOne({where: {project_id}});
+    const project_settings = await ProjectSettings.scope('+history').findOne({
+        where: {project_id}
+    });
+    const filteredQueries = ProjectSettings.filterQueries(req.body, false);
 
     if (!project_settings){
         return e(500, res, "project_settings_missing", "Project Settings Missing");
     }
 
-    //Update with validation
-    const params = ProjectSettings.filterQueries(req.body, false);
-    try{
-        await project_settings.update(params, t);
-    }catch(error){
-        return val_e(res, error);
-    }
-
-    //Return settings obj if success
-    data = project_settings.toJSON();
-    delete data.id;
-    return res.send(data);
+    //Proceed
+    const mapping = (project_settings) => {
+        let data = project_settings.toJSON();
+        delete data.id;
+        return data;
+    };
+    return APIforSavingWithHistory(req, res, project_settings, filteredQueries, {
+        mapping_history: mapping,
+        mapping: mapping,
+    });
 
 })};

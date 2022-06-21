@@ -3,7 +3,7 @@ const LoginSession = $models.LoginSession;
 const LoginRecord = $models.LoginRecord;
 
 const {e, val_e, w} = require("./common");
-const {APIforListing} = require("./common");
+const {APIforListing, APIforSavingWithHistory} = require("./common");
 
 /**
  * POST	/login
@@ -103,14 +103,13 @@ exports.getMyself = async (req, res) => { await w(res, async (t) => {
  * PUT /myself
  */
 exports.setMyself = async (req, res) => { await w(res, async (t) => {
-    const user = res.locals.user;
-    try{
-        let queries = User.filterQueries(req.body, true, false);
-        await user.update(queries, t);
-    }catch(error){
-        return val_e(res, error);
-    }
-    return res.send(user.display());
+    const user = await User.scope('+history').findOne({where: {id: res.locals.user_id}});
+    const filteredQueries = User.filterQueries(req.body, true, false);
+
+    return APIforSavingWithHistory(req, res, user, filteredQueries, {
+        mapping_history: (user) => user.display(),
+        mapping: (user) => user.display(),
+    });
 })};
 
 /**
@@ -173,7 +172,7 @@ exports.newUser = async (req, res) => { await w(res, async (t) => {
 exports.getUsers = async (req, res) => { await w(res, async (t) => {
 
     let response = await APIforListing(req, res, 'User', {
-        mapping: (instance) => instance.display(),
+        mapping: (user) => user.display(),
     });
     return response;
 
@@ -203,25 +202,21 @@ exports.getUser = async (req, res) => { await w(res, async (t) => {
  */
 exports.setUser = async (req, res) => { await w(res, async (t) => {
 
-    const params = User.filterQueries(req.body, false, false);
-    const user = await User.findOne({
+    const user = await User.scope('+history').findOne({
         where: {id: req.params.user_id},
     }, t);
+    const filteredQueries = User.filterQueries(req.body, false, false);
 
     //User not found -> 404
     if (!user){
         return e(404, res, "user_not_found", "User Not Found");
     }
 
-    //Update with validation
-    try{
-        await user.update(params, t);
-    }catch(error){
-        return val_e(res, error);
-    }
-
-    //Return user obj if success
-    return res.send(user.display());
+    //Proceed
+    return APIforSavingWithHistory(req, res, user, filteredQueries, {
+        mapping_history: (user) => user.display(),
+        mapping: (user) => user.display(),
+    });
 
 })};
 

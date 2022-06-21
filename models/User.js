@@ -50,7 +50,7 @@ module.exports = (sequelize) => {
     };
 
     const scopes = {
-        _history: { attributes: ["_history"] },
+        "+history": {where: defaultScope.where},
     };
 
     const model_options = {

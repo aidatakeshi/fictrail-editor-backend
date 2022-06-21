@@ -1,4 +1,5 @@
 const { QueryTypes, Op } = require('sequelize');
+const { getDelta, applyDelta } = require('../includes/diffJSON');
 
 /**
  * Show Error as JSON Response [showError / e]
@@ -150,3 +151,57 @@ async function APIforListing(req, res, className, options = {}){
 
 }
 exports.APIforListing = APIforListing;
+
+/**
+ * API For Saving with History Handling
+ * [options]
+ * mapping_history (function: instance, req) - data mapping for saving history
+ * mapping (function: instance, req) - data mapping for returning
+ */
+async function APIforSavingWithHistory(req, res, instance, filteredQueries, options = {}){
+
+    //Compare old & new data
+    let old_data;
+    if (options.mapping_history){
+        old_data = options.mapping_history(instance, req);
+    }else{
+        old_data = instance.toJSON();
+    }
+    let new_data = { ...old_data };
+    for (let f in filteredQueries){
+        if (new_data[f] !== undefined) new_data[f] = filteredQueries[f];
+    }
+    const delta = getDelta(new_data, old_data);
+
+    //Add to History
+    let _history;
+    if (_history = instance._history){
+        if (!Array.isArray(_history)) _history = [];
+        if (delta !== undefined){
+            _history.unshift({
+                updated_at: Math.floor(new Date().getTime() / 1000),
+                updated_by: res.locals.user_id,
+                delta,
+            });
+        }
+        instance.changed('_history', true); //Force change _history field
+    }
+
+    //Do Update, catch validation errors
+    try{
+        await instance.update({ ...filteredQueries, _history });
+    }catch(error){
+        return showValidationError(res, error);
+    }
+
+    //Return instance
+    if (options.mapping){
+        data = options.mapping(instance, req);
+    }else{
+        data = instance.toJSON();
+    }
+    delete data._history;
+    return res.send(data);
+
+}
+exports.APIforSavingWithHistory = APIforSavingWithHistory;

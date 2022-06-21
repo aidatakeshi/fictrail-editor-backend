@@ -49,7 +49,7 @@ module.exports = (sequelize) => {
     };
 
     const scopes = {
-        _history: { attributes: ["_history"] },
+        "+history": {},
     };
 
     const model_options = {
@@ -76,12 +76,6 @@ module.exports = (sequelize) => {
         longitude_max: 50,
         earth_radius: 6371.0088,
     };
-
-    /**
-     * CRUD-Related
-     */
-    ProjectSettings.hidden_fields = ['id_auto'];
-    ProjectSettings.locked_fields = ['project_id'];
 
     /**
      * Model Specific Methods
