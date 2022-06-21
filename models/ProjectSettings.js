@@ -10,32 +10,6 @@ module.exports = (sequelize) => {
         }
     }
 
-    const model_options = {
-        modelName: 'ProjectSettings',
-        tableName: 'project_settings',
-        timestamps: false,
-        sequelize,
-        validate: {
-            latitude(){
-                let invalid = false;
-                if (this.latitude_min < -90 || this.latitude_min > +90) invalid = true;
-                if (this.latitude_max < -90 || this.latitude_max > +90) invalid = true;
-                if (this.latitude_min >= this.latitude_max) invalid = true;
-                if (invalid) throw new Error('Invalid Latitude Range. Latitude values should be -90 ~ +90.');
-            },
-            longitude(){
-                let invalid = false;
-                if (this.longitude_min < -360 || this.longitude_min > +360) invalid = true;
-                if (this.longitude_max < -360 || this.longitude_max > +360) invalid = true;
-                if (this.longitude_min >= this.longitude_max) invalid = true;
-                if (this.longitude_max - this.longitude_min > 360) invalid = true;
-                if (this.longitude_max + this.longitude_min > 360) invalid = true;
-                if (this.longitude_max + this.longitude_min < -360) invalid = true;
-                if (invalid) throw new Error('Invalid Longitude Range. Longitude values should be -360 ~ +360, the span should not be over 360, and the midpoint should be -180 ~ +180.');
-            },
-        },
-    };
-
     const model_attributes = {
         id: { type: dt.STRING, allowNull: false, primaryKey: true, unique: true },
         project_id: { type: dt.STRING },
@@ -46,6 +20,46 @@ module.exports = (sequelize) => {
         longitude_min: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
         longitude_max: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
         earth_radius: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
+        //
+        _history: { type: dt.JSON },
+    };
+
+    const validate = {
+        latitude(){
+            let invalid = false;
+            if (this.latitude_min < -90 || this.latitude_min > +90) invalid = true;
+            if (this.latitude_max < -90 || this.latitude_max > +90) invalid = true;
+            if (this.latitude_min >= this.latitude_max) invalid = true;
+            if (invalid) throw new Error('Invalid Latitude Range. Latitude values should be -90 ~ +90.');
+        },
+        longitude(){
+            let invalid = false;
+            if (this.longitude_min < -360 || this.longitude_min > +360) invalid = true;
+            if (this.longitude_max < -360 || this.longitude_max > +360) invalid = true;
+            if (this.longitude_min >= this.longitude_max) invalid = true;
+            if (this.longitude_max - this.longitude_min > 360) invalid = true;
+            if (this.longitude_max + this.longitude_min > 360) invalid = true;
+            if (this.longitude_max + this.longitude_min < -360) invalid = true;
+            if (invalid) throw new Error('Invalid Longitude Range. Longitude values should be -360 ~ +360, the span should not be over 360, and the midpoint should be -180 ~ +180.');
+        },
+    };
+
+    const defaultScope = {
+        attributes: { exclude: ["_history"] },
+    };
+
+    const scopes = {
+        _history: { attributes: ["_history"] },
+    };
+
+    const model_options = {
+        modelName: 'ProjectSettings',
+        tableName: 'project_settings',
+        timestamps: false,
+        validate,
+        scopes,
+        sequelize,
+        sequelize,
     };
 
     ProjectSettings.init(model_attributes, model_options);

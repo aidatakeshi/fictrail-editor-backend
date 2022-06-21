@@ -41,13 +41,17 @@ module.exports = (sequelize) => {
         created_by: { type: dt.STRING },
         deleted_at: { type: dt.BIGINT },
         deleted_by: { type: dt.STRING },
+        _history: { type: dt.JSON },
     };
 
     const defaultScope = {
         where: { deleted_by: null },
+        attributes: { exclude: ["_history"] },
     };
 
-    const scopes = {};
+    const scopes = {
+        _history: { attributes: ["_history"] },
+    };
 
     const model_options = {
         modelName: 'User',

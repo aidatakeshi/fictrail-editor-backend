@@ -16,22 +16,11 @@ module.exports = {
         const double = { type: Sequelize.DOUBLE, allowNull: true };
         const bigint = { type: Sequelize.BIGINT, allowNull: true };
 
+        const _history = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
         const created_at = timestamp;
         const created_by = string;
         const deleted_at = timestamp;
         const deleted_by = string;
-
-        /**
-         * Table "projects"
-         */
-        await queryInterface.createTable('projects', {
-            id: id_string,
-            name: text,
-            name_l: json,
-            is_public: bool_default_false,
-            //
-            created_at, created_by, deleted_at, deleted_by,
-        });
 
         /**
          * Table "users"
@@ -46,7 +35,19 @@ module.exports = {
             is_root_user: bool_default_false,
             can_create_new_project: bool_default_true,
             //
-            created_at, created_by, deleted_at, deleted_by,
+            created_at, created_by, deleted_at, deleted_by, _history,
+        });
+
+        /**
+         * Table "projects"
+         */
+        await queryInterface.createTable('projects', {
+            id: id_string,
+            name: text,
+            name_l: json,
+            is_public: bool_default_false,
+            //
+            created_at, created_by, deleted_at, deleted_by, _history,
         });
 
         /**
@@ -58,7 +59,7 @@ module.exports = {
             project_id: string_required,
             rights: string,
             //
-            created_at, created_by, deleted_at, deleted_by,
+            created_at, created_by, deleted_at, deleted_by, _history,
         });
 
         /**
