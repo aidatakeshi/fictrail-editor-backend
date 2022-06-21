@@ -57,6 +57,8 @@ module.exports = {
             user_id: string_required,
             project_id: string_required,
             rights: string,
+            //
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         /**

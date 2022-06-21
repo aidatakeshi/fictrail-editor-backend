@@ -100,10 +100,11 @@ module.exports = function(restriction = "user"){
             is_project_public = project.is_public;
 
             //Check user rights
+            let project_assignment;
             if (res.locals.is_root_user){
                 user_rights_in_project = 'root';
             }else{
-                const project_assignment = await ProjectAssignment.findOne({
+                project_assignment = await ProjectAssignment.findOne({
                     where: {project_id, user_id},
                 }, t);
                 if (project_assignment){
@@ -117,6 +118,7 @@ module.exports = function(restriction = "user"){
             res.locals.project = project;
             res.locals.project_id = project.id;
             res.locals.rights = user_rights_in_project;
+            res.locals.assignment = project_assignment;
 
         }
 

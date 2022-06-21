@@ -10,7 +10,7 @@ module.exports = (sequelize) => {
 
     class User extends Model {
         static associate(models) {
-            
+            models.User.hasMany(models.ProjectAssignment, {foreignKey: 'user_id'});
         }
     }
 

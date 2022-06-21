@@ -58,16 +58,19 @@ exports.getProjects = async (req, res) => { await w(res, async (t) => {
 
     //Not root user: Only list projects assigned to the user, and public projects
     if (!res.locals.is_root_user){
+
         //Get Project IDs of Projects Assigned to the User
         const project_ids_assigned = await ProjectAssignment.findAll({
             attributes: ['project_id'], where: {user_id: res.locals.user_id},
         })
         let project_ids = project_ids_assigned.map((instance) => instance.project_id);
+
         //Get Project IDs of Public Projects
         const project_ids_public = await Project.findAll({
             attributes: ['id'], where: {is_public: true},
         })
         project_ids = project_ids.concat(project_ids_public.map((instance) => instance.id));
+
         //Get Projects & ProjectAssignments
         let response = await APIforListing(req, res, 'Project', {
             where: { id: {[Op.in]: project_ids} },
@@ -79,8 +82,14 @@ exports.getProjects = async (req, res) => { await w(res, async (t) => {
             mapping: (instance) => {
                 let data = instance.display();
                 data.my_rights = null;
+                data.my_assignment = null;
                 if (data.ProjectAssignments.length){
                     data.my_rights = data.ProjectAssignments[0].rights;
+                    data.my_assignment = {
+                        rights: data.ProjectAssignments[0].rights,
+                        created_at: data.ProjectAssignments[0].created_at,
+                        created_by: data.ProjectAssignments[0].created_by,
+                    };
                 }
                 delete data.ProjectAssignments;
                 return data;
@@ -88,6 +97,7 @@ exports.getProjects = async (req, res) => { await w(res, async (t) => {
         });
         return response;
     }
+
     //Root user: List all projects
     else{
         let response = await APIforListing(req, res, 'Project', {
@@ -109,7 +119,12 @@ exports.getProject = async (req, res) => { await w(res, async (t) => {
     const project = res.locals.project;
     let data = {
         ...project.display(),
-        my_rights: res.locals.rights,
+        my_rights: res.locals.rights || null,
+        my_assignment: (!res.locals.assignment) ? null : {
+            rights: res.locals.assignment.rights,
+            created_at: res.locals.assignment.created_at,
+            created_by: res.locals.assignment.created_by,
+        },
     };
     
     if (req.query.get_settings){
@@ -197,16 +212,37 @@ exports.assignProject = async (req, res) => { await w(res, async (t) => {
         return e(404, res, "user_not_found", "User Not Found");
     }
 
-    //Update / Insert ProjectAssignment item
-    const data = {id: uuid(), user_id, project_id, rights};
-    let project_assignment = await ProjectAssignment.findOne({where: {
+    //Prepare New Data
+    const current_timestamp = Math.floor(new Date().getTime() / 1000);
+    let data = {
+        id: uuid(),
+        user_id, project_id, rights,
+        created_at: current_timestamp,
+        created_by: res.locals.user_id,
+    };
+
+    //Check Old Assignment
+    let project_assignment_old = await ProjectAssignment.findOne({where: {
         user_id, project_id
     }}, t);
+    const rights_old = project_assignment_old ? project_assignment_old.rights : null;
 
-    if (project_assignment){
-        await project_assignment.update(data, t);
-    }else{
-        project_assignment = await ProjectAssignment.create(data, t);
+    //Don't do anything if rights remains unchanged
+    if (rights == rights_old){
+        data = project_assignment_old.toJSON();
+        for (let f of ['id', 'deleted_at', 'deleted_by']) delete data[f];
+        return res.send(data);
+    }
+
+    //Create New Assignment
+    await ProjectAssignment.create(data, t);
+
+    //Remove Old Assignment
+    if (project_assignment_old){
+        await project_assignment_old.update({
+            deleted_at: current_timestamp,
+            deleted_by: res.locals.user_id,
+        }, t);
     }
 
     //Return Data
@@ -253,20 +289,29 @@ exports.unassignProject = async (req, res) => { await w(res, async (t) => {
  */
 exports.getProjectAssignments = async (req, res) => { await w(res, async (t) => {
 
-    const project_id = req.params.project_id;
-    let query = "SELECT users.*, rights FROM users"
-    + " RIGHT JOIN project_assignments ON project_assignments.user_id = users.id"
-    + " WHERE project_id = ?";
-    let data = await $models.sequelize.query(query, {
-        replacements: [project_id],
-        type: QueryTypes.SELECT,
-        mapToModel: true,
-        model: User,
+    let response = await APIforListing(req, res, 'User', {
+        mapping: (instance) => {
+            let data = instance.display();
+            data.my_rights = null;
+            data.my_assignment = null;
+            if (data.ProjectAssignments.length){
+                data.my_rights = data.ProjectAssignments[0].rights;
+                data.my_assignment = {
+                    rights: data.ProjectAssignments[0].rights,
+                    created_at: data.ProjectAssignments[0].created_at,
+                    created_by: data.ProjectAssignments[0].created_by,
+                };
+            }
+            delete data.ProjectAssignments;
+            return data;
+        },
+        include: {
+            model: ProjectAssignment,
+            where: {project_id: req.params.project_id},
+            required: true,
+        },
     });
-
-    //Return Data
-    data = data.map(item => item.display());
-    return res.send({data});
+    return response;
 
 })};
 

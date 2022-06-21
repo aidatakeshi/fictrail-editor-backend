@@ -99,6 +99,7 @@ async function APIforListing(req, res, className, options = {}){
 
     //Make Count
     const count = await MyClass.count({
+        include,
         where: {[Op.and]: filtersApplied},
     });
 
