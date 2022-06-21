@@ -275,12 +275,17 @@ exports.unassignProject = async (req, res) => { await w(res, async (t) => {
         user_id, project_id
     }}, t);
 
+    let data = {};
     if (project_assignment){
-        await project_assignment.destroy(t);
+        data = await project_assignment.update({
+            deleted_at: Math.floor(new Date().getTime() / 1000),
+            deleted_by: res.locals.user_id,
+        }, t);
     }
 
     //Return Data
-    return res.send({});
+    delete data.id;
+    return res.send(data);
 
 })};
 
