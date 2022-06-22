@@ -12,8 +12,8 @@ module.exports = (sequelize) => {
 
     const model_attributes = {
         id: { type: dt.UUID, unique: true, primaryKey: true },
-        user_id: { type: dt.STRING },
-        project_id: { type: dt.STRING },
+        user_id: { type: dt.STRING, allowNull: false },
+        project_id: { type: dt.STRING, allowNull: false },
         rights: { type: dt.STRING },
         //
         created_at: { type: dt.BIGINT },

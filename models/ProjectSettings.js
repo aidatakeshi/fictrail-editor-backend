@@ -12,7 +12,7 @@ module.exports = (sequelize) => {
 
     const model_attributes = {
         id: { type: dt.STRING, allowNull: false, primaryKey: true, unique: true },
-        project_id: { type: dt.STRING },
+        project_id: { type: dt.STRING, allowNull: false },
         language_default: { type: dt.TEXT, allowNull: false, validate: validations.name },
         language_alt: { type: dt.JSON, allowNull: false, validate: validations.name_l_json },
         latitude_min: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },

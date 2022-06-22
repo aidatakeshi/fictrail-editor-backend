@@ -37,7 +37,7 @@ module.exports = function(restriction = "user"){
 
             //Check if login session expired -> 401
             const last_activity_time = login_session.last_activity_time;
-            const logout_inactivity_sec = parseInt(process.env.LOGOUT_INACTIVITY_SEC);
+            const logout_inactivity_sec = parseInt(process.env.LOGOUT_INACTIVITY_SEC || 86400);
             const current_timestamp = Math.floor(new Date().getTime() / 1000);
             if (current_timestamp > last_activity_time + logout_inactivity_sec){
                 force_logout_error = "session_expired";
@@ -82,6 +82,8 @@ module.exports = function(restriction = "user"){
         res.locals.user_id = user_id;
         res.locals.is_root_user = is_root_user;
         res.locals.can_create_new_project = can_create_new_project;
+        res.locals.bearer_token = login_session.bearer_token;
+        res.locals.file_token = login_session.file_token;
 
         //Check User Rights in the Project
         if (project_id && res.locals.user_id){

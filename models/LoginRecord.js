@@ -19,7 +19,7 @@ module.exports = (sequelize) => {
 
     const model_attributes = {
         id_auto: { type: dt.BIGINT, autoIncrement: true, primaryKey: true },
-        user_id: { type: dt.STRING },
+        user_id: { type: dt.STRING, allowNull: false },
         bearer_token: { type: dt.STRING },
         login_time: { type: dt.BIGINT },
         logout_time: { type: dt.BIGINT },

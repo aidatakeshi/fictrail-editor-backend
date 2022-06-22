@@ -71,6 +71,7 @@ module.exports = {
             bearer_token: string,
             login_time: timestamp,
             last_activity_time: timestamp,
+            file_token: string,
         });
 
         /**
@@ -105,9 +106,10 @@ module.exports = {
         await queryInterface.createTable('files', {
             id: id_string,
             project_id: string_required,
-            directory: string,
-            extension: string,
-            mimetype: string,
+            directory: string_required,
+            filename: string_required,
+            extension: string_required,
+            mimetype: string_required,
             size: bigint,
             upload_time: timestamp,
             //

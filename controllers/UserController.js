@@ -1,6 +1,7 @@
 const User = $models.User;
 const LoginSession = $models.LoginSession;
 const LoginRecord = $models.LoginRecord;
+const File = $models.File;
 
 const {e, val_e, w} = require("./common");
 const {APIforListing, APIforSavingWithHistory} = require("./common");
@@ -28,7 +29,7 @@ exports.login = async (req, res) => { await w(res, async (t) => {
     }
 
     //Check if last login attempt too close -> 401
-    const min_interval = parseInt(process.env.LOGIN_ATTEMPT_INTERVAL_SEC);
+    const min_interval = parseInt(process.env.LOGIN_ATTEMPT_INTERVAL_SEC || 15);
     const current_timestamp = Math.floor(new Date().getTime() / 1000);
     const please_wait = user.last_login_attempt + min_interval - current_timestamp;
     if (please_wait > 0){
@@ -48,13 +49,16 @@ exports.login = async (req, res) => { await w(res, async (t) => {
     const bearer_token = user.generateBearerToken();
     const login_time = current_timestamp;
     const last_activity_time = login_time;
+    const file_token = File.getNewFileToken();
 
     //Create login record & login session
     await LoginRecord.create({user_id, bearer_token, login_time}, t);
-    await LoginSession.create({user_id, bearer_token, login_time, last_activity_time}, t);
+    await LoginSession.create({
+        user_id, bearer_token, login_time, last_activity_time, file_token,
+    }, t);
 
     //Return Data
-    return res.send({user_id, bearer_token, login_time});
+    return res.send({user_id, bearer_token, login_time, file_token});
 })};
 
 /**
