@@ -75,6 +75,10 @@ module.exports = function(restriction = "user"){
 
             //Proceed, Update last_activity_time
             login_session.update({last_activity_time: current_timestamp});
+
+            //Pass Session Data to Controller
+            res.locals.bearer_token = login_session.bearer_token;
+            res.locals.file_token = login_session.file_token;
         }
 
         //Pass User Data to Controller
@@ -82,8 +86,6 @@ module.exports = function(restriction = "user"){
         res.locals.user_id = user_id;
         res.locals.is_root_user = is_root_user;
         res.locals.can_create_new_project = can_create_new_project;
-        res.locals.bearer_token = login_session.bearer_token;
-        res.locals.file_token = login_session.file_token;
 
         //Check User Rights in the Project
         if (project_id && res.locals.user_id){
