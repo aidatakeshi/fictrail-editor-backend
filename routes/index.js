@@ -2,8 +2,6 @@ var express = require('express');
 var router = express.Router();
 global.$models = require("../models");
 
-router.get('/', (req, res) => res.send({ message: "Fictional Railway Editor" }) );
-
 /**
  * Define Middleware
  */
@@ -12,9 +10,12 @@ const _auth = {
     root: AuthMiddleware('root'),
     user: AuthMiddleware('user'),
     viewer: AuthMiddleware('viewer'),
+    viewer_file: AuthMiddleware('viewer', true),
     editor: AuthMiddleware('editor'),
     owner: AuthMiddleware('owner'),
 };
+
+router.get('/', (req, res) => res.send({ message: "Fictional Railway Editor" }) );
 
 /**
  * User
@@ -50,6 +51,17 @@ router.put('/project/:project_id/unassign', _auth.owner, ProjectController.unass
 router.get('/project/:project_id/assignment', _auth.owner, ProjectController.getProjectAssignments);
 router.get('/project/:project_id/settings', _auth.viewer, ProjectController.getProjectSettings);
 router.put('/project/:project_id/settings', _auth.editor, ProjectController.setProjectSettings);
+
+/**
+ * File
+ */
+
+const FileController = require('../controllers/FileController');
+
+router.post('/p/:project_id/file', _auth.editor, FileController.uploadFile);
+router.get('/p/:project_id/file/:file_key', _auth.viewer_file, FileController.getFile);
+router.get('/p/:project_id/file/:file_key/meta', _auth.viewer, FileController.getFileMeta);
+
 
 /**
  * Misc

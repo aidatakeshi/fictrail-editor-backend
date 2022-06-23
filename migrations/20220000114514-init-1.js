@@ -107,11 +107,11 @@ module.exports = {
             id: id_string,
             project_id: string_required,
             directory: string_required,
+            filename_original: string_required,
             filename: string_required,
-            extension: string_required,
             mimetype: string_required,
             size: bigint,
-            upload_time: timestamp,
+            encoding: string_required,
             //
             created_at, created_by, deleted_at, deleted_by,
         });

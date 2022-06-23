@@ -14,23 +14,37 @@ const {e, w} = require("../controllers/common");
  * "editor": Editor user of project (same as above)
  * "viewer": Viewer user of project, or any user / non-user of public project (same as above)
  */
-module.exports = function(restriction = "user"){
+module.exports = function(restriction = "user", use_file_token = false){
     return async (req, res, next) => { await w(res, async (t) => {
 
-        let bearer_token, user, user_id;
+        let login_session;
+        let user, user_id;
         let is_root_user, can_create_new_project;
         let project_id = req.params.project_id;
         let user_rights_in_project, is_project_public;
 
-        //Bearer Token Specified
-        if (bearer_token = req.headers.authorization){
+        let bearer_token = req.headers.authorization;
+        let file_token = req.query.token;
 
-            //Check if bearer token exists -> 401
+        //Find Login Session
+        if (!use_file_token && bearer_token){
             bearer_token = bearer_token.split(' ').pop();
-            let login_session = await LoginSession.findOne({where: {bearer_token}});
-            if (login_session === null){
+            login_session = await LoginSession.findOne({where: {bearer_token}});
+            if (!login_session){
                 return e(401, res, "session_not_found", "Session Not Found");
             }
+        }else if (file_token){
+            login_session = await LoginSession.findOne({where: {file_token}});
+            if (!login_session){
+                return e(401, res, "session_not_found", "Session Not Found");
+            }
+        }
+
+        //Bearer Token Specified
+        if (login_session){
+            //Check if bearer token exists -> 401
+            
+            console.log(login_session);
 
             //"Force Logout" Flag
             let force_logout_error = null, force_logout_message = null;
