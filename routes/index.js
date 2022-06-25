@@ -59,8 +59,11 @@ router.put('/project/:project_id/settings', _auth.editor, ProjectController.setP
 const FileController = require('../controllers/FileController');
 
 router.post('/p/:project_id/file', _auth.editor, FileController.uploadFile);
+router.put('/p/:project_id/file/:file_key', _auth.editor, FileController.uploadFile);
 router.get('/p/:project_id/file/:file_key', _auth.viewer_file, FileController.getFile);
 router.get('/p/:project_id/file/:file_key/meta', _auth.viewer, FileController.getFileMeta);
+router.delete('/p/:project_id/file/:file_key', _auth.editor, FileController.removeFile);
+router.get('/p/:project_id/file', _auth.editor, FileController.getFiles);
 
 
 /**

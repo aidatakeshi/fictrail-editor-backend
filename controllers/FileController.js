@@ -17,50 +17,89 @@ const fs = require('fs-extra');
 
 /**
  * POST /p/:project_id/file
- * (TBD: file size limit, repetition detection)
+ * PUT /p/:project_id/file/:file_key
+ * (TBD: repetition detection)
  */
- exports.uploadFile = async (req, res) => { await w(res, async (t) => {
+
+exports.uploadFile = async (req, res) => { await w(res, async (t) => {
 
     const project_id = res.locals.project_id;
-    const new_file_id = await File.getNewFileID();
+    let file_key;
     const directory = File.getNewFileDirectory();
     const upload_path = `uploads/${project_id}/${directory}`;
     const current_timestamp = Math.floor(new Date().getTime() / 1000);
     let mimetype, filename;
+    let old_file_meta;
+
+    //Check If File Exists (for PUT)
+    if (req.params.file_key){
+        old_file_meta = await File.findOne({ where: {key: req.params.file_key} });
+        if (!old_file_meta){
+            return e(404, res, 'file_not_found', 'File Not Found');
+        }
+        file_key = req.params.file_key;
+    }
+    //(For POST)
+    else{
+        file_key = await File.getNewFileKey();
+    }
+
     //Prepare Storage
     const storage = multer.diskStorage({
-        destination: function (req, file, cb) {
+        destination: function (req, file, callback) {
             fs.mkdirsSync(upload_path);
-            cb(null, upload_path);
+            return callback(null, upload_path);
         },
-        filename: function (req, file, cb) {
+        filename: function (req, file, callback) {
             mimetype = file.mimetype;
             extension = mimetype.split('/').pop();
-            filename = `${new_file_id}.${current_timestamp}.${extension}`;
-            cb(null, filename);
+            filename = `${file_key}.${current_timestamp}.${extension}`;
+            return callback(null, filename);
         },
     });
 
     //Prepare upload (multer middleware, now used in controller)
-    const upload = multer({ storage: storage }).single('file');
+    const upload = multer({
+        storage: storage,
+        limits: {
+            fileSize: parseInt(process.env.FILE_SIZE_LIMIT || 10000000),
+        },
+        fileFilter: (req, file, callback) => {
+            if (req.query.image){
+                const allowed_ext = (process.env.FILE_IMAGE_EXTENSION || "").split("|");
+                const file_ext = file.originalname.split('.').pop();
+                if (!allowed_ext.includes(file_ext)){
+                    return e(400, res, 'image_file_required', 'Image File Required');
+                }
+            }
+            return callback(null, true);
+        },
+    }).single('file');
 
     //Do Upload
     upload(req, res, async function (error) {
+        
+        //Upload Error Thrown?
         if (error) {
+            console.log(error);
+            if (error.code === 'LIMIT_FILE_SIZE'){
+                return e(400, res, 'file_oversized', 'File Oversized');
+            }
             return e(500, res, 'file_upload_error', 'File Upload Error');
         }
 
         //If Empty -> 400
         if (!req.file){
-            return e(400, res, 'file_missing_in_multipart', 'File Missing In Multipart');
+            return e(400, res, 'file_missing', 'File Missing in Body Multipart');
         }
 
         //Upload Successful
         const file = req.file;
 
         //Create New Item in Database
-        const file_entry = await File.create({
-            id: new_file_id,
+        const new_file_meta = await File.create({
+            id: uuid(),
+            key: file_key,
             project_id,
             filename_original: file.originalname,
             directory, filename, mimetype,
@@ -70,21 +109,32 @@ const fs = require('fs-extra');
             created_by: res.locals.user_id,
             created_at: current_timestamp,
         });
+
+        //Soft Delete Old File Meta
+        if (old_file_meta){
+            await old_file_meta.update({
+                deleted_by: res.locals.user_id,
+                deleted_at: Math.floor(new Date().getTime() / 1000),
+            });
+        }
         
         //Return Data
-        res.send(file_entry.display());
+        res.send(new_file_meta.display());
     });
 
 })};
 
 /**
- * /p/:project_id/file/:file_key
+ * GET /p/:project_id/file/:file_key
  * Notice that this API does not use AuthMiddleware
  */
 exports.getFile = async (req, res) => { await w(res, async (t) => {
 
     //File Not Found -> 404
-    const fmeta = await File.findOne({ where: {id: req.params.file_key, project_id: req.params.project_id} });
+    const fmeta = await File.findOne({ where: {
+        key: req.params.file_key,
+        project_id: req.params.project_id,
+    } });
     if (!fmeta){
         return e(404, res, 'file_not_found', 'File Not Found');
     }
@@ -112,17 +162,55 @@ exports.getFile = async (req, res) => { await w(res, async (t) => {
 })};
 
 /**
- * /p/:project_id/file/:file_key/meta
+ * GET /p/:project_id/file/:file_key/meta
  */
 exports.getFileMeta = async (req, res) => { await w(res, async (t) => {
 
     //File Not Found -> 404
-    const fmeta = await File.findOne({ where: {id: req.params.file_key, project_id: req.params.project_id} });
+    const fmeta = await File.findOne({ where: {
+        key: req.params.file_key,
+        project_id: req.params.project_id,
+    } });
     if (!fmeta){
         return e(404, res, 'file_not_found', 'File Not Found');
     }
 
     //Return Data
     return res.send(fmeta.display());
+
+})};
+
+/**
+ * DELETE /p/:project_id/file/:file_key
+ */
+exports.removeFile = async (req, res) => { await w(res, async (t) => {
+
+    //File Not Found -> 404
+    const fmeta = await File.findOne({ where: {
+        key: req.params.file_key,
+        project_id: req.params.project_id,
+    } });
+    if (!fmeta){
+        return e(404, res, 'file_not_found', 'File Not Found');
+    }
+    
+    //Copy file obj
+    const old_fmeta = fmeta.display();
+
+    //Soft delete file
+    await fmeta.update({
+        deleted_by: res.locals.user_id,
+        deleted_at: Math.floor(new Date().getTime() / 1000),
+    }, t);
+
+    //Return old file obj
+    return res.send(old_fmeta);
+
+})};
+
+/**
+ * GET /p/:project_id/file
+ */
+exports.getFiles = async (req, res) => { await w(res, async (t) => {
 
 })};

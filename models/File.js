@@ -11,7 +11,8 @@ module.exports = (sequelize) => {
     }
 
     const model_attributes = {
-        id: { type: dt.STRING, primaryKey: true, unique: true, validate: validations.id },
+        id: { type: dt.UUID, unique: true, primaryKey: true },
+        key: { type: dt.STRING, validate: validations.id },
         project_id: { type: dt.STRING, allowNull: false },
         directory: { type: dt.STRING, allowNull: false },
         filename_original: { type: dt.STRING, allowNull: false },
@@ -56,16 +57,16 @@ module.exports = (sequelize) => {
         return token;
     };
 
-    File.getNewFileID = async function(){
+    File.getNewFileKey = async function(){
         while(true){
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let id = '';
+            let key = '';
             for (let i = 0; i < 16; i++){ //token.length = 16
-                id += chars.charAt(Math.floor(Math.random() * 62)); //chars.length = 62
+                key += chars.charAt(Math.floor(Math.random() * 62)); //chars.length = 62
             }
             //Check collision
-            let existingFile = await File.findOne({where: {id}});
-            if (!existingFile) return id;
+            let existingFile = await File.findOne({where: {key}});
+            if (!existingFile) return key;
         }
     };
 
@@ -81,7 +82,7 @@ module.exports = (sequelize) => {
     File.prototype.display = function(){
         let obj = { ...this.toJSON() }
         for(let f of ['deleted_at', 'deleted_by']) delete obj[f];
-        for(let f of ['directory', 'filename']) delete obj[f];
+        for(let f of ['id', 'directory', 'filename']) delete obj[f];
         return obj;
     };
     

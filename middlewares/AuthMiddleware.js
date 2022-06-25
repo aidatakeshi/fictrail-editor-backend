@@ -42,9 +42,6 @@ module.exports = function(restriction = "user", use_file_token = false){
 
         //Bearer Token Specified
         if (login_session){
-            //Check if bearer token exists -> 401
-            
-            console.log(login_session);
 
             //"Force Logout" Flag
             let force_logout_error = null, force_logout_message = null;

@@ -6,19 +6,21 @@ const File = $models.File;
 const {e, val_e, w} = require("./common");
 const {APIforListing, APIforSavingWithHistory} = require("./common");
 
+const { v4: uuid } = require('uuid');
+
 /**
  * POST	/login
  */
 exports.login = async (req, res) => { await w(res, async (t) => {
 
     //Missing Params -> 401
-    let id, password;
-    if (!(id = req.body.id) || !(password = req.body.password)){
+    let user_id, password;
+    if (!(user_id = req.body.id) || !(password = req.body.password)){
         return e(400, res, "missing_params", "Missing Parameters");
     }
 
     //Check if user exists -> 401
-    const user = await User.findOne({where: {id}});
+    const user = await User.findOne({where: {id: user_id}});
     if (!user){
         return e(401, res, "user_not_exists", "User Not Exists");
     }
@@ -45,16 +47,16 @@ exports.login = async (req, res) => { await w(res, async (t) => {
     }
 
     //Generate a bearer token
-    const user_id = user.id;
+    const id = uuid();
     const bearer_token = user.generateBearerToken();
     const login_time = current_timestamp;
     const last_activity_time = login_time;
     const file_token = File.getNewFileToken();
 
     //Create login record & login session
-    await LoginRecord.create({user_id, bearer_token, login_time}, t);
+    await LoginRecord.create({id, user_id, bearer_token, login_time}, t);
     await LoginSession.create({
-        user_id, bearer_token, login_time, last_activity_time, file_token,
+        id, user_id, bearer_token, login_time, last_activity_time, file_token,
     }, t);
 
     //Return Data

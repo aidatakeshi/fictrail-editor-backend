@@ -57,8 +57,8 @@ module.exports = (sequelize) => {
         tableName: 'project_settings',
         timestamps: false,
         validate,
+        defaultScope,
         scopes,
-        sequelize,
         sequelize,
     };
 
@@ -70,10 +70,10 @@ module.exports = (sequelize) => {
     ProjectSettings.default = {
         language_default: "English",
         language_alt: {},
-        latitude_min: -25,
-        latitude_max: -15,
-        longitude_min: 42,
-        longitude_max: 50,
+        latitude_min: 42,
+        latitude_max: 50,
+        longitude_min: -25,
+        longitude_max: -15,
         earth_radius: 6371.0088,
     };
 
