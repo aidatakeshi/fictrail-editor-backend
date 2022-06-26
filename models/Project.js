@@ -59,6 +59,8 @@ module.exports = (sequelize) => {
         name: ($DIR) => [
             [sequelize.fn('LOWER', sequelize.fn('COALESCE', sequelize.col('name'), sequelize.col('id'))), $DIR],
         ],
+        created_at: ($DIR) => [["created_at", $DIR]],
+        created_by: ($DIR) => [["created_by", $DIR]],
     };
     Project.sort_default = [["created_at", "ASC"]];
 

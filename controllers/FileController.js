@@ -52,7 +52,7 @@ exports.uploadFile = async (req, res) => { await w(res, async (t) => {
         },
         filename: function (req, file, callback) {
             mimetype = file.mimetype;
-            extension = mimetype.split('/').pop();
+            extension = file.originalname.split('.').pop();
             filename = `${file_key}.${current_timestamp}.${extension}`;
             return callback(null, filename);
         },
@@ -65,11 +65,17 @@ exports.uploadFile = async (req, res) => { await w(res, async (t) => {
             fileSize: parseInt(process.env.FILE_SIZE_LIMIT || 10000000),
         },
         fileFilter: (req, file, callback) => {
-            if (req.query.image){
-                const allowed_ext = (process.env.FILE_IMAGE_EXTENSION || "").split("|");
-                const file_ext = file.originalname.split('.').pop();
-                if (!allowed_ext.includes(file_ext)){
-                    return e(400, res, 'image_file_required', 'Image File Required');
+            if (process.env.FILE_EXTENSION_ALLOWED){
+                const extensions_allowed = process.env.FILE_EXTENSION_ALLOWED.split('|');
+                const extension = file.originalname.split('.').pop();
+                if (!extensions_allowed.includes(extension.toLowerCase())){
+                    return e(400, res, 'extension_not_allowed', 'Extension Not Allowed');
+                }
+            }
+            if (req.query.mimetype){
+                const mimetype_prefix = (file.mimetype||'').split('/')[0];
+                if (mimetype_prefix != req.query.mimetype){
+                    return e(400, res, 'invalid_mimetype', 'Invalid Mimetype');
                 }
             }
             return callback(null, true);
@@ -212,5 +218,11 @@ exports.removeFile = async (req, res) => { await w(res, async (t) => {
  * GET /p/:project_id/file
  */
 exports.getFiles = async (req, res) => { await w(res, async (t) => {
+
+    let response = await APIforListing(req, res, 'File', {
+        where: { project_id: req.params.project_id },
+        mapping: (file) => file.display(),
+    });
+    return response;
 
 })};

@@ -1,5 +1,5 @@
 'use strict';
-const { Model, DataTypes:dt } = require('sequelize');
+const { Model, DataTypes:dt, Op } = require('sequelize');
 const { validations } = require("./common");
 
 module.exports = (sequelize) => {
@@ -46,12 +46,46 @@ module.exports = (sequelize) => {
     File.init(model_attributes, model_options);
 
     /**
+     * CRUD-Related
+     */
+    File.sorts = { //e.g. "id:asc", "id:desc"
+        key: ($DIR) => [['key', $DIR]],
+        name: ($DIR) => [
+            [sequelize.fn('LOWER', sequelize.col('filename_original')), $DIR],
+        ],
+        mimetype: ($DIR) => [['mimetype', $DIR]],
+        size: ($DIR) => [['size', $DIR]],
+        created_at: ($DIR) => [["created_at", $DIR]],
+        created_by: ($DIR) => [["created_by", $DIR]],
+    };
+    File.sort_default = [["created_at", "ASC"]];
+
+    File.filters = {
+        name: (val) => ({
+            filename_original: { [Op.iLike]: `${val}%` }
+        }),
+        name_contains: (val) => ({
+            filename_original: { [Op.iLike]: `%${val}%` }
+        }),
+        mimetype: (val) => ({mimetype: val}),
+        size_smaller: (val) => ({size: {[Op.lte]: val}}),
+        size_larger: (val) => ({size: {[Op.gte]: val}}),
+        created_before: (val) => ({created_at: {[Op.lte]: val}}),
+        created_after: (val) => ({created_at: {[Op.gte]: val}}),
+        created_by: (val) => ({created_by: val}),
+    };
+
+    File.limit_default = 25;
+    File.limit_max = 100;
+
+    /**
      * Model Specific Methods
      */
     File.getNewFileToken = function(){
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let token = '';
-        for (let i = 0; i < 16; i++){ //token.length = 16
+        const length = process.env.FILE_TOKEN_LENGTH || 16;
+        for (let i = 0; i < length; i++){ //token.length = 16
             token += chars.charAt(Math.floor(Math.random() * 62)); //chars.length = 62
         }
         return token;
@@ -61,7 +95,8 @@ module.exports = (sequelize) => {
         while(true){
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
             let key = '';
-            for (let i = 0; i < 16; i++){ //token.length = 16
+            const length = process.env.FILE_KEY_LENGTH || 16;
+            for (let i = 0; i < length; i++){ //token.length = 16
                 key += chars.charAt(Math.floor(Math.random() * 62)); //chars.length = 62
             }
             //Check collision
