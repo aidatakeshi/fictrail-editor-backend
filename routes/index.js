@@ -65,6 +65,15 @@ router.get('/p/:project_id/file/:file_key/meta', _auth.viewer, FileController.ge
 router.delete('/p/:project_id/file/:file_key', _auth.editor, FileController.removeFile);
 router.get('/p/:project_id/file', _auth.editor, FileController.getFiles);
 
+/**
+ * Content APIs (Generic)
+ */
+
+
+/**
+ * Content APIs (Special)
+ */
+
 
 /**
  * Misc
