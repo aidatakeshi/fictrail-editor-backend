@@ -5,7 +5,7 @@ module.exports = {
         const double = { type: Sequelize.DOUBLE, allowNull: true };
 
         const id = { type: Sequelize.UUID, primaryKey: true, unique: true };
-        const project_id = { type: Sequelize.UUID };
+        const project_id = { type: Sequelize.STRING };
 
         const region_broader_id = { type: Sequelize.UUID, allowNull: true };
         const region_id = { type: Sequelize.UUID, allowNull: true };
