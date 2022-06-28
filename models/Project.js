@@ -100,7 +100,7 @@ module.exports = (sequelize) => {
 
     Project.filterQueries = function(queries, isNew){
         if (!isNew) delete queries.id;
-        for (let f of ['created_at', 'created_by', 'deleted_at', 'deleted_by']) delete queries[f];
+        for (let f of ['created_at', 'created_by', 'deleted_at', 'deleted_by', '_history']) delete queries[f];
         return queries;
     };
 

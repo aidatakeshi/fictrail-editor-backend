@@ -29,6 +29,13 @@ exports.validations = {
         },
     },
     decimal: {number},
+    integer: {
+        integer(value){
+            if (!Number.isInteger(value)) {
+                throw new Error("Integer Required");
+            }
+        }
+    },
     email: {
         isEmail: {msg: "Invalid Email Address"}
     },

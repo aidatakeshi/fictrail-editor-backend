@@ -123,7 +123,7 @@ module.exports = (sequelize) => {
 
     User.filterQueries = function(queries, isMyself, isNew){
         if (!isNew) delete queries.id;
-        for (let f of ['created_at', 'created_by', 'deleted_at', 'deleted_by']) delete queries[f];
+        for (let f of ['created_at', 'created_by', 'deleted_at', 'deleted_by', '_history']) delete queries[f];
         for (let f of ['last_login_attempt']) delete queries[f];
         if (isMyself){
             for (let f of ['password', 'is_root_user', 'can_create_new_project', 'is_enabled']) delete queries[f];

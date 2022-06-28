@@ -48,7 +48,8 @@ exports.w = wrapperForController;
 /**
  * API For Listing
  * [options]
- * mapping (function: instance, req)
+ * mapping (function: item, req)
+ * attributes (array)
  * where (array or obj)
  * include (array or obj)
  */
@@ -74,7 +75,7 @@ async function APIforListing(req, res, className, options = {}){
         }
     }
 
-    //Handle options.include (eager loading other associated model instances)
+    //Handle options.include (eager loading other associated model items)
     let include = [];
     if (options.include){
         if (!Array.isArray(options.include)) options.include = [options.include];
@@ -133,17 +134,18 @@ async function APIforListing(req, res, className, options = {}){
     }
     
     //Do Search
-    const instances = await MyClass.findAll({
-        include, order, limit, offset,
+    const attributes = options.attributes;
+    const items = await MyClass.findAll({
+        attributes, include, order, limit, offset,
         where: {[Op.and]: filtersApplied},
     });
 
     //Handle Mapping & Additional Data
     let data;
     if (!options.mapping){
-        data = instances.map(instance => instance.toJSON());
+        data = items.map(item => item.toJSON());
     }else{
-        data = instances.map(instance => options.mapping(instance, req));
+        data = items.map(item => options.mapping(item, req));
     }
 
     //Return Data
@@ -155,27 +157,39 @@ exports.APIforListing = APIforListing;
 /**
  * API For Saving with History Handling
  * [options]
- * mapping_history (function: instance, req) - data mapping for saving history
- * mapping (function: instance, req) - data mapping for returning
+ * mapping_history (function: item, req) - data mapping for saving history
+ * mapping (function: item, req) - data mapping for returning
+ * on_save (function: item, req) - pre-save process function
  */
-async function APIforSavingWithHistory(req, res, instance, filteredQueries, options = {}){
+async function APIforSavingWithHistory(req, res, item, filteredQueries, options = {}){
 
-    //Compare old & new data
-    let old_data;
-    if (options.mapping_history){
-        old_data = options.mapping_history(instance, req);
-    }else{
-        old_data = instance.toJSON();
-    }
+    //Prepare new data
+    let old_data = item.toJSON();
     let new_data = { ...old_data };
-    for (let f in filteredQueries){
-        if (new_data[f] !== undefined) new_data[f] = filteredQueries[f];
+    for (let field in filteredQueries){
+        if (new_data[field] !== undefined){
+            new_data[field] = filteredQueries[field];
+            item.changed(field, true); //Force change field
+        }
     }
-    const delta = getDelta(new_data, old_data);
+
+    //Call pre-save function to new data
+    if (options.on_save){
+        new_data = options.on_save(new_data, req);
+    }
+
+    //Get Delta between new & old data
+    let new_data_compare = { ...new_data };
+    let old_data_compare = { ...old_data };
+    if (options.mapping_history){
+        new_data_compare = options.mapping_history(new_data_compare, req);
+        old_data_compare = options.mapping_history(old_data_compare, req);
+    }
+    const delta = getDelta(new_data_compare, old_data_compare);
 
     //Add to History
     let _history;
-    if (_history = instance._history){
+    if (_history = item._history){
         if (!Array.isArray(_history)) _history = [];
         if (delta !== undefined){
             _history.unshift({
@@ -184,21 +198,21 @@ async function APIforSavingWithHistory(req, res, instance, filteredQueries, opti
                 delta,
             });
         }
-        instance.changed('_history', true); //Force change _history field
+        item.changed('_history', true); //Force change _history field
     }
 
     //Do Update, catch validation errors
     try{
-        await instance.update({ ...filteredQueries, _history });
+        await item.update({ ...new_data, _history });
     }catch(error){
         return showValidationError(res, error);
     }
 
-    //Return instance
+    //Return item
     if (options.mapping){
-        data = options.mapping(instance, req);
+        data = options.mapping(item, req);
     }else{
-        data = instance.toJSON();
+        data = item.toJSON();
     }
     delete data._history;
     return res.send(data);

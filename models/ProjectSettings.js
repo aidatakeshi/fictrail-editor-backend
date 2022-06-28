@@ -81,7 +81,7 @@ module.exports = (sequelize) => {
      * Model Specific Methods
      */
     ProjectSettings.filterQueries = function(queries){
-        for (let f of ['id', 'project_id']) delete queries[f];
+        for (let f of ['id', 'project_id', '_history']) delete queries[f];
         return queries;
     };
     

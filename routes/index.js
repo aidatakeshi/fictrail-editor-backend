@@ -69,6 +69,15 @@ router.get('/p/:project_id/file', _auth.editor, FileController.getFiles);
  * Content APIs (Generic)
  */
 
+const ContentGeneralController = require('../controllers/ContentGeneralController');
+
+router.get('/p/:project_id/:type', _auth.viewer, ContentGeneralController.getItems);
+router.get('/p/:project_id/:type/:id', _auth.viewer, ContentGeneralController.getItem);
+router.post('/p/:project_id/:type', _auth.editor, ContentGeneralController.createItem);
+router.put('/p/:project_id/:type/:id', _auth.editor, ContentGeneralController.editItem);
+router.delete('/p/:project_id/:type/:id', _auth.editor, ContentGeneralController.removeItem);
+router.post('/p/:project_id/:type/:id', _auth.editor, ContentGeneralController.duplicateItem);
+router.put('/p/:project_id/:type', _auth.editor, ContentGeneralController.reorderItem);
 
 /**
  * Content APIs (Special)
