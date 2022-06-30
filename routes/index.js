@@ -83,6 +83,11 @@ router.put('/p/:project_id/:type', _auth.editor, ContentGeneralController.reorde
  * Content APIs (Special)
  */
 
+const { getAreaOfPolygon } = require('../includes/longitude_latitude_calc');
+router.post('/test', function(req, res){
+    res.send({area: getAreaOfPolygon(req.body.vertices)});
+});
+
 
 /**
  * Misc

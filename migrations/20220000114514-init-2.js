@@ -24,8 +24,8 @@ module.exports = {
         const [x_min, x_max, y_min, y_max] = [double, double, double, double];
         const [_x_min, _x_max, _y_min, _y_max] = [double, double, double, double];
         const hide_below_logzoom = { type: Sequelize.DOUBLE, allowNull: false, defaultValue: 0 };
-        const vertices = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
-        const [polygons, subtracts, _land_polygons, _land_subtracts] = [vertices, vertices, vertices, vertices];
+        const polygon = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
+        const _land_polygon = polygon;
         const _area = { type: Sequelize.DOUBLE, allowNull: true };
 
         const name = { type: Sequelize.TEXT, allowNull: true };
@@ -74,7 +74,7 @@ module.exports = {
 
         await queryInterface.createTable('_map_lands', {
             id, project_id,
-            vertices, name, name_l,
+            polygon, name, name_l,
             hide_below_logzoom,
             sort, is_locked,
             _x_min, _x_max, _y_min, _y_max,
@@ -84,8 +84,7 @@ module.exports = {
 
         await queryInterface.createTable('_map_waters', {
             id, project_id,
-            polygons, subtracts,
-            name, name_l,
+            polygon, name, name_l,
             hide_below_logzoom,
             sort, is_locked,
             _x_min, _x_max, _y_min, _y_max,
@@ -95,8 +94,7 @@ module.exports = {
 
         await queryInterface.createTable('_regions_broader', {
             id, project_id,
-            polygons, subtracts,
-            name, name_l, name_short, name_short_l,
+            polygon, name, name_l, name_short, name_short_l,
             sort, remarks,
             _area, _names,
             created_at, created_by, deleted_at, deleted_by, _history,
@@ -107,7 +105,7 @@ module.exports = {
             region_broader_id,
             name, name_l, name_suffix, name_suffix_l, name_short, name_short_l, remarks,
             sort, is_locked,
-            polygons, subtracts, _land_polygons, _land_subtracts,
+            polygon, _land_polygon,
             _area, _names,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
@@ -117,7 +115,7 @@ module.exports = {
             region_id,
             name, name_l, name_suffix, name_suffix_l, name_short, name_short_l, remarks,
             sort, is_locked,
-            polygons, subtracts, _land_polygons, _land_subtracts,
+            polygon, _land_polygon,
             _area, _names,
             created_at, created_by, deleted_at, deleted_by, _history,
         });

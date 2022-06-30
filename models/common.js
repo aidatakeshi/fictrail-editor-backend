@@ -1,4 +1,4 @@
-const { DataTypes } = require('sequelize');
+const { DataTypes: dt, Op } = require('sequelize');
 
 const empty = function(value){
     if (value === ""){
@@ -18,7 +18,7 @@ const number = function(value){
     }
 };
 
-exports.validations = {
+const va = {
     id: {empty, length255},
     name: {empty},
     boolean: {
@@ -48,13 +48,9 @@ exports.validations = {
         },
     },
     name_l_json: {
-        invalidObject(value){
-            let valid = true;
-            if (Array.isArray(value)) valid = false;
-            else if (value === null) valid = false;
-            else if (typeof value !== 'object') valid = false;
-            if (!valid){
-                throw new Error("Invalid Object");
+        notObject(value){
+            if (Array.isArray(value) || value === null || typeof value !== 'object'){
+                throw new Error("Not An Object");
             }
         },
         empty(value){
@@ -66,4 +62,47 @@ exports.validations = {
             }
         },
     },
+    polygon: {
+        invalidPolygon(value){
+            const $e = "It should be of GeoJSON polygon format";
+            //It should be a three-layer array,
+            //while the third layer should have only 2 elements, and all are finite numbers.
+            if (!Array.isArray(value)) throw new Error($e);
+            for (let vertices of value){
+                if (!Array.isArray(vertices)) throw new Error($e);
+                for (let vertex of vertices){
+                    if (!Array.isArray(vertex)) throw new Error($e);
+                    if (vertex.length != 2) throw new Error($e);
+                    if (!Number.isFinite(vertex[0])) throw new Error($e);
+                    if (!Number.isFinite(vertex[1])) throw new Error($e);
+                }
+            }
+        }
+    },
 };
+exports.validations = va;
+
+const at = {
+    id_uuid: () => ({ type: dt.UUID, unique: true, primaryKey: true }),
+    project_id: () => ({ type: dt.STRING, allowNull: false }),
+    file_key: () => ({ type: dt.STRING, allowNull: false }),
+    longitude: () => ({ type: dt.DOUBLE, allowNull: false, validate: va.decimal }),
+    latitude: () => ({ type: dt.DOUBLE, allowNull: false, validate: va.decimal }),
+    logzoom: () => ({ type: dt.DOUBLE, allowNull: false, validate: va.decimal }),
+    name: () => ({ type: dt.TEXT, allowNull: false, validate: va.name }),
+    name_l: () => ({ type: dt.JSON, allowNull: false, defaultValue: {}, validate: va.name_l_json }),
+    polygon: () => ({ type: dt.JSON, allowNull: false, defaultValue: [], validate: va.polygon }),
+    polygons: () => ({ type: dt.JSON, allowNull: false, defaultValue: [], validate: va.polygons }),
+    sort: () => ({ type: dt.DOUBLE, allowNull: false, defaultValue: 0, validate: va.integer }),
+    is_locked: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
+    is_hidden: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
+    _decimal: () => ({ type: dt.DOUBLE, allowNull: true }),
+    _names: () => ({ type: dt.TEXT, allowNull: true }),
+    //
+    created_at: () => ({ type: dt.BIGINT }),
+    created_by: () => ({ type: dt.STRING }),
+    deleted_at: () => ({ type: dt.BIGINT }),
+    deleted_by: () => ({ type: dt.STRING }),
+    _history: () => ({ type: dt.JSON }),
+};
+exports.attributes = at;

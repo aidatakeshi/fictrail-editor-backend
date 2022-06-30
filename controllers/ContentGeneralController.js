@@ -64,8 +64,8 @@ exports.getItem = async (req, res) => { await w(res, async (t) => {
     //Get Mode (query: _mode)
     let get_mode = {};
     const _get_mode = req.query._mode;
-    if (_get_mode && $Class.modes){
-        get_mode = $Class.modes[_get_mode] || {};
+    if (_get_mode && $Class.get_modes){
+        get_mode = $Class.get_modes[_get_mode] || {};
     }
 
     //Check If ID valid UUID
@@ -109,6 +109,7 @@ exports.createItem = async (req, res) => { await w(res, async (t) => {
 
     //Filter Queries. Set id, project_id, created_at, created_by.
     let params = {
+        ...($Class.default || {}),
         id: uuid(),
         ...filterQueries(req.body),
         project_id: req.params.project_id,
@@ -303,7 +304,7 @@ exports.reorderItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Get ids
-    const ids = req.body.ids;
+    const ids = req.body.ids || [];
 
     //Make id -> sort mapping
     let sort_by_id = {};

@@ -19,7 +19,6 @@ module.exports = (sequelize) => {
         latitude_max: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
         longitude_min: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
         longitude_max: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
-        earth_radius: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
         //
         _history: { type: dt.JSON },
     };
@@ -74,7 +73,6 @@ module.exports = (sequelize) => {
         latitude_max: 50,
         longitude_min: -25,
         longitude_max: -15,
-        earth_radius: 6371.0088,
     };
 
     /**

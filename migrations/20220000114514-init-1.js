@@ -96,7 +96,6 @@ module.exports = {
             latitude_max: double,
             longitude_min: double,
             longitude_max: double,
-            earth_radius: double,
             _history,
         });
 
