@@ -62,19 +62,22 @@ const va = {
             }
         },
     },
-    polygon: {
-        invalidPolygon(value){
-            const $e = "It should be of GeoJSON polygon format";
-            //It should be a three-layer array,
-            //while the third layer should have only 2 elements, and all are finite numbers.
+    polygons: {
+        invalidPolygons(value){
+            const $e = "It should be of GeoJSON MultiPolygon format (4-layer array)";
+            //It should be a 4-layer array,
+            //while the 4 layer should have only 2 elements, and all are finite numbers.
             if (!Array.isArray(value)) throw new Error($e);
-            for (let vertices of value){
-                if (!Array.isArray(vertices)) throw new Error($e);
-                for (let vertex of vertices){
-                    if (!Array.isArray(vertex)) throw new Error($e);
-                    if (vertex.length != 2) throw new Error($e);
-                    if (!Number.isFinite(vertex[0])) throw new Error($e);
-                    if (!Number.isFinite(vertex[1])) throw new Error($e);
+            for (let polygon of value){
+                if (!Array.isArray(polygon)) throw new Error($e);
+                for (let vertices of polygon){
+                    if (!Array.isArray(vertices)) throw new Error($e);
+                    for (let vertex of vertices){
+                        if (!Array.isArray(vertex)) throw new Error($e);
+                        if (vertex.length != 2) throw new Error($e);
+                        if (!Number.isFinite(vertex[0])) throw new Error($e);
+                        if (!Number.isFinite(vertex[1])) throw new Error($e);
+                    }
                 }
             }
         }
@@ -91,7 +94,6 @@ const at = {
     logzoom: () => ({ type: dt.DOUBLE, allowNull: false, validate: va.decimal }),
     name: () => ({ type: dt.TEXT, allowNull: false, validate: va.name }),
     name_l: () => ({ type: dt.JSON, allowNull: false, defaultValue: {}, validate: va.name_l_json }),
-    polygon: () => ({ type: dt.JSON, allowNull: false, defaultValue: [], validate: va.polygon }),
     polygons: () => ({ type: dt.JSON, allowNull: false, defaultValue: [], validate: va.polygons }),
     sort: () => ({ type: dt.DOUBLE, allowNull: false, defaultValue: 0, validate: va.integer }),
     is_locked: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),

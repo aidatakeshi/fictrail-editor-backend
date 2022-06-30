@@ -3,7 +3,7 @@ const { Model, DataTypes:dt, Op } = require('sequelize');
 const { attributes:at } = require("./common");
 
 const {
-    getAreaOfPolygon, getBoundingBoxOfPolygon
+    getAreaOfPolygons, getBoundingBoxOfPolygons
 } = require('../includes/longitude_latitude_calc');
 
 module.exports = (sequelize) => {
@@ -17,7 +17,7 @@ module.exports = (sequelize) => {
     const model_attributes = {
         id: at.id_uuid(),
         project_id: at.project_id(),
-        polygon: at.polygon(),
+        polygons: at.polygons(),
         name: at.name(),
         name_l: at.name_l(),
         hide_below_logzoom: at.logzoom(),
@@ -94,8 +94,8 @@ module.exports = (sequelize) => {
     //Display Modes in GET methods. Overrides display() if mapping function is specified.
     //get_modes[type] = {where, attributes, include, mapping}
     $MapLand.get_modes = {
-        no_vertices: {
-            attributes: { exclude: ['vertices'] },
+        no_polygons: {
+            attributes: { exclude: ['polygons'] },
         },
     };
 
@@ -110,13 +110,13 @@ module.exports = (sequelize) => {
         item._names = item.name;
         for (let l in item.name_l) item._names += `\n${item.name_l[l]}`;
         //_x_min, y_min, x_max, y_max
-        const bounding_box = getBoundingBoxOfPolygon(item.polygon) || {};
+        const bounding_box = getBoundingBoxOfPolygons(item.polygons) || {};
         item._x_min = bounding_box.x_min;
         item._x_max = bounding_box.x_max;
         item._y_min = bounding_box.y_min;
         item._y_max = bounding_box.y_max;
         //_area
-        item._area = getAreaOfPolygon(item.polygon, true);
+        item._area = getAreaOfPolygons(item.polygons, true);
         //Done
         return item;
     };

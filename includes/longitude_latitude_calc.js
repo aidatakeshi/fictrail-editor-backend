@@ -1,6 +1,15 @@
+const pc = require('polygon-clipping');
+
 /**
- * Check if valid polygon
+ * Check if valid [multi]polygon
  */
+exports.isValidMultiPolygon = function(multipolygon){
+    if (!Array.isArray(multipolygon)) return false;
+    for (let polygon of multipolygon){
+        if (!isValidPolygon(polygon)) return false;
+    }
+    return true;
+}
 exports.isValidPolygon = function(polygon){
     if (!Array.isArray(polygon)) return false;
     for (let vertices of polygon){
@@ -15,39 +24,52 @@ exports.isValidPolygon = function(polygon){
     return true;
 }
 const isValidPolygon = exports.isValidPolygon;
+const isValidMultiPolygon = exports.isValidMultiPolygon;
 
 /**
- * Get Bounding Box of Polygon
+ * Get Bounding Box of MultiPolygon
  */
-exports.getBoundingBoxOfPolygon = function(polygon){
-    //Check if valid polygon
-    if (!isValidPolygon(polygon)) return null;
-    //Check if empty polygon
-    if (!polygon[0]) return null;
+exports.getBoundingBoxOfPolygons = function(multipolygon){
+    //Check if valid multipolygon
+    if (!isValidMultiPolygon(multipolygon)) return null;
+    //For each polygon, reduce it to get x/y_min/max
+    multipolygon = multipolygon.map(polygon => {
+        if (!polygon[0]) return null;
+        return {
+            x_min: Math.min(...polygon[0].map((vertex) => vertex[0])),
+            x_max: Math.max(...polygon[0].map((vertex) => vertex[0])),
+            y_min: Math.min(...polygon[0].map((vertex) => vertex[1])),
+            y_max: Math.max(...polygon[0].map((vertex) => vertex[1])),
+        };
+    }).filter(polygon => (polygon !== null));
     //Return Data
     return {
-        x_min: Math.min(...polygon[0].map((vertex) => vertex[0])),
-        x_max: Math.max(...polygon[0].map((vertex) => vertex[0])),
-        y_min: Math.min(...polygon[0].map((vertex) => vertex[1])),
-        y_max: Math.max(...polygon[0].map((vertex) => vertex[1])),
+        x_min: Math.min(...multipolygon.map(item => item.x_min)),
+        x_max: Math.max(...multipolygon.map(item => item.x_max)),
+        y_min: Math.min(...multipolygon.map(item => item.y_min)),
+        y_max: Math.max(...multipolygon.map(item => item.y_max)),
     };
 }
-const getBoundingBoxOfPolygon = exports.getBoundingBoxOfPolygon;
+const getBoundingBoxOfPolygons = exports.getBoundingBoxOfPolygons;
 
 /**
- * Get Area of Polygon
+ * Get Area of MultiPolygon
  * polygon[$i] = {x, y}, where x, y are longitudes, latitudes in degrees respectively
  * Default Unit: Square with side equal to 1 degree longitude on earth
  */
-exports.getAreaOfPolygon = function(polygon, in_square_km = false){
-    //Check if valid polygon
-    if (!isValidPolygon(polygon)) return null;
-    //Check if empty polygon
-    if (!polygon[0]) return 0;
-    //Get total area (first element in array is positive bounds, while else are negative holes)
-    let total_area = getAreaInVertices(polygon[0]);
-    for (let i = 1; i < polygon.length; i++){
-        total_area -= getAreaInVertices(polygon[i]);
+exports.getAreaOfPolygons = function(multipolygon, in_square_km = false){
+    let total_area = 0;
+    //Check if valid multipolygon
+    if (!isValidMultiPolygon(multipolygon)) return null;
+    //For each polygon
+    for(let polygon of multipolygon){
+        //Check if empty polygon
+        if (!polygon[0]) continue;
+        //Get total area (first element in array is positive bounds, while else are negative holes)
+        total_area += getAreaInVertices(polygon[0]);
+        for (let i = 1; i < polygon.length; i++){
+            total_area -= getAreaInVertices(polygon[i]);
+        }
     }
     //If square km mode
     if (in_square_km){
@@ -57,7 +79,7 @@ exports.getAreaOfPolygon = function(polygon, in_square_km = false){
     }
     return total_area;
 }
-const getAreaOfPolygon = exports.getAreaOfPolygon;
+const getAreaOfPolygons = exports.getAreaOfPolygons;
 
 //Get Area of Vertices (i.e. Sub-polygon)
 //vertex = [x, y]
@@ -127,4 +149,37 @@ function cos_deg(deg){
     if (deg % 360 == 180 || deg % 360 == -180) return -1;
     if (deg % 180 == 90 || deg % 180 == -90) return 0;
     return Math.cos(deg * Math.PI / 180);
+}
+
+/**
+ * Polygon Clipping
+ * Wrapper for "polygon-clipping".
+ * To remove duplicated vertex at the end for each polygon (since all polygons are closed).
+ */
+exports.union = function(...multipolygons){
+    let result = pc.union(...multipolygons);
+    return removeDuplicateVertices(result);
+}
+exports.intersection = function(...multipolygons){
+    let result = pc.intersection(...multipolygons);
+    return removeDuplicateVertices(result);
+}
+exports.difference = function(...multipolygons){
+    let result = pc.difference(...multipolygons);
+    return removeDuplicateVertices(result);
+}
+
+function removeDuplicateVertices(result){
+    return result.map(multipolygon => (
+        multipolygon.map(polygon => {
+            if (polygon.length >= 2){
+                const first_vertex = polygon[0];
+                const last_vertex = polygon[polygon.length - 1];
+                if (first_vertex[0] === last_vertex[0] && first_vertex[1] === last_vertex[1]){
+                    polygon.pop();
+                }
+            }
+            return polygon;
+        })
+    ));
 }
