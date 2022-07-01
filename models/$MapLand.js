@@ -20,6 +20,7 @@ module.exports = (sequelize) => {
         polygons: at.polygons(),
         name: at.name(),
         name_l: at.name_l(),
+        remarks: at.remarks(),
         hide_below_logzoom: at.logzoom(),
         sort: at.sort(),
         is_locked: at.is_locked(),
@@ -60,11 +61,14 @@ module.exports = (sequelize) => {
     /**
      * CRUD-Related
      */
-    $MapLand.default = { //Default value
+
+    //Default value for New Item
+    $MapLand.new_default = {
         hide_below_logzoom: 0,
     };
 
-    $MapLand.sorts = { //e.g. "id:asc", "id:desc"
+    //Sort modes (query: _sort, e.g. "id:asc", "id:desc")
+    $MapLand.sorts = {
         name: ($DIR) => [['name', $DIR]],
         hide_below_logzoom: ($DIR) => [['hide_below_logzoom', $DIR]],
         sort: ($DIR) => [['sort', $DIR]],
@@ -72,9 +76,10 @@ module.exports = (sequelize) => {
     };
     $MapLand.sort_default = [["sort", "ASC"]];
 
+    //Filters (query: [filtername])
     $MapLand.filters = {
-        name: (val) => ({ name: { [Op.iLike]: `${val}%`} }),
-        name_contains: (val) => ({ name: { [Op.iLike]: `%${val}%`} }),
+        name: (val) => ({ _names: { [Op.iLike]: `%|${val}%`} }),
+        name_contains: (val) => ({ _names: { [Op.iLike]: `%${val}%`} }),
         x_min_lt: (val) => ({ x_min: { [Op.lte]: val} }),
         x_max_gt: (val) => ({ x_max: { [Op.gte]: val} }),
         y_min_lt: (val) => ({ y_min: { [Op.lte]: val} }),
@@ -85,30 +90,31 @@ module.exports = (sequelize) => {
         unlocked: () => ({is_locked: false}),
     };
 
+    //Default & max display limit
     $MapLand.limit_default = null;
     $MapLand.limit_max = null;
 
     $MapLand.allow_duplicate = true;
     $MapLand.allow_reorder = true;
 
-    //Display Modes in GET methods. Overrides display() if mapping function is specified.
-    //get_modes[type] = {where, attributes, include, mapping}
+    //Display Modes for GET methods (query: _mode).
+    //get_modes[type] = {where, attributes, include, include.order}
+    //It can also be a function (params: item, req) returning the above-mentioned object
+    $MapLand.get_default = {
+        attributes: { exclude: ['_names', 'polygons'] },
+    };
     $MapLand.get_modes = {
-        no_polygons: {
-            attributes: { exclude: ['polygons'] },
+        polygons: {
+            attributes: { exclude: ['_names'] },
         },
     };
-
-    //Custom data display function (params: item, req) used in GET (default mode), PUT, POST and DELETE.
-    //If not specified, the generic display function is used.
-    $MapLand.display = null;
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
     $MapLand.on_save = function(item, req){
         //_names
-        item._names = item.name;
-        for (let l in item.name_l) item._names += `\n${item.name_l[l]}`;
+        item._names = `|${item.name}`;
+        for (let l in item.name_l) item._names += `|${item.name_l[l]}`;
         //_x_min, y_min, x_max, y_max
         const bounding_box = getBoundingBoxOfPolygons(item.polygons) || {};
         item._x_min = bounding_box.x_min;

@@ -313,6 +313,7 @@ exports.getProjectAssignments = async (req, res) => { await w(res, async (t) => 
             where: {project_id: req.params.project_id},
             required: true,
         },
+        count_use_include: true,
     });
     return response;
 

@@ -65,10 +65,12 @@ module.exports = {
 
         await queryInterface.createTable('_map_ref_images', {
             id, project_id,
+            name, name_l,
             x_min, x_max, y_min, y_max,
             file_key,
             hide_below_logzoom,
-            sort, is_locked, is_hidden,
+            sort, is_locked, is_hidden, remarks,
+            _names,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -76,7 +78,7 @@ module.exports = {
             id, project_id,
             polygons, name, name_l,
             hide_below_logzoom,
-            sort, is_locked,
+            sort, is_locked, remarks,
             _x_min, _x_max, _y_min, _y_max,
             _area, _names,
             created_at, created_by, deleted_at, deleted_by, _history,
@@ -86,7 +88,7 @@ module.exports = {
             id, project_id,
             polygons, name, name_l,
             hide_below_logzoom,
-            sort, is_locked,
+            sort, is_locked, remarks,
             _x_min, _x_max, _y_min, _y_max,
             _names,
             created_at, created_by, deleted_at, deleted_by, _history,
@@ -94,9 +96,9 @@ module.exports = {
 
         await queryInterface.createTable('_regions_broader', {
             id, project_id,
-            polygons, name, name_l, name_short, name_short_l,
+            name, name_l, name_short, name_short_l,
             sort, remarks,
-            _area, _names,
+            _names,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 

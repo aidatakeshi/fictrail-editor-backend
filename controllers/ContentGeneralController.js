@@ -26,11 +26,13 @@ exports.getItems = async (req, res) => { await w(res, async (t) => {
     }
 
     //Get Mode (query: _mode)
-    let get_mode = {};
+    let get_mode = $Class.get_default || {};
     const _get_mode = req.query._mode;
     if (_get_mode && $Class.get_modes){
         get_mode = $Class.get_modes[_get_mode] || {};
+        if (typeof get_mode === 'function') get_mode = get_mode(req);
     }
+    const includes = getAssocIncludes(get_mode);
 
     //Retrieve Items
     let response = await APIforListing(req, res, className, {
@@ -40,10 +42,15 @@ exports.getItems = async (req, res) => { await w(res, async (t) => {
         },
         attributes: get_mode.attributes,
         include: get_mode.include,
+        order: getAssocOrders(includes),
         mapping: (item, req) => {
-            const custom_mapping = get_mode.mapping || $Class.display;
-            if (custom_mapping) item = custom_mapping(item, req);
-            return displayItem(item, req);
+            //Do Mapping On Item
+            item = displayItem(item);
+            //Do Mapping On Assoc Items
+            for (let include of includes){
+                item[include.as] = item[include.as].map(a_item => displayItem(a_item, req));
+            }
+            return item;
         },
     });
     return response;
@@ -62,11 +69,13 @@ exports.getItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Get Mode (query: _mode)
-    let get_mode = {};
+    let get_mode = $Class.get_default || {};
     const _get_mode = req.query._mode;
     if (_get_mode && $Class.get_modes){
         get_mode = $Class.get_modes[_get_mode] || {};
+        if (typeof get_mode === 'function') get_mode = get_mode(req);
     }
+    const includes = getAssocIncludes(get_mode);
 
     //Check If ID valid UUID
     if (!checkIDValidUUID(req.params.id)){
@@ -82,6 +91,7 @@ exports.getItem = async (req, res) => { await w(res, async (t) => {
         },
         attributes: get_mode.attributes,
         include: get_mode.include,
+        order: getAssocOrders(includes),
     });
 
     //Item Not Found -> 404
@@ -89,10 +99,16 @@ exports.getItem = async (req, res) => { await w(res, async (t) => {
         return e(404, res, 'item_not_found', 'Item Not Found');
     }
 
+    //Do Mapping On Item
+    item = displayItem(item, req);
+
+    //Do Mapping On Assoc Items
+    for (let include of includes){
+        item[include.as] = item[include.as].map(a_item => displayItem(a_item, req));
+    }
+
     //Return Data
-    const custom_mapping = get_mode.mapping || $Class.display;
-    if (custom_mapping) item = custom_mapping(item, req);
-    return res.send(displayItem(item, req));
+    return res.send(item);
 
 })};
 
@@ -109,7 +125,7 @@ exports.createItem = async (req, res) => { await w(res, async (t) => {
 
     //Filter Queries. Set id, project_id, created_at, created_by.
     let params = {
-        ...($Class.default || {}),
+        ...($Class.new_default || {}),
         id: uuid(),
         ...filterQueries(req.body),
         project_id: req.params.project_id,
@@ -131,7 +147,6 @@ exports.createItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return new project obj if success
-    if ($Class.display) item = $Class.display(item, req);
     return res.send(displayItem(item, req));
 
 })};
@@ -175,10 +190,7 @@ exports.editItem = async (req, res) => { await w(res, async (t) => {
             }
             return item;
         },
-        mapping: (item, req) => {
-            if ($Class.display) item = $Class.display(item, req);
-            return displayItem(item, req);
-        },
+        mapping: (item, req) => displayItem(item, req),
         on_save: $Class.on_save,
     });
 
@@ -212,20 +224,13 @@ exports.removeItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Soft delete item
-    let old_item;
-    if ($Class.display){
-        old_item = $Class.display(item, req);
-    }else{
-        old_item = item.toJSON();
-    }
-    old_item = displayItem(old_item, req);
     await item.update({
         deleted_by: res.locals.user_id,
         deleted_at: Math.floor(new Date().getTime() / 1000),
     }, t);
 
     //Return old project obj
-    return res.send(old_item);
+    return res.send(displayItem(item, req));
 
 })};
 
@@ -287,7 +292,6 @@ exports.duplicateItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return new project obj if success
-    if ($Class.display) new_item = $Class.display(new_item, req);
     return res.send(displayItem(new_item, req));
 
 })};
@@ -341,7 +345,6 @@ exports.reorderItem = async (req, res) => { await w(res, async (t) => {
         }
         item.changed('_history', true); //Force change _history field
         //Do Update
-        console.log({sort, _history});
         await item.update({ sort, _history }, t);
     }
 
@@ -377,4 +380,23 @@ function filterQueries(queries){
 function checkIDValidUUID(id){
     const regexExp = /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/gi;
     return regexExp.test(id);
+}
+
+function getAssocIncludes(get_mode){
+    if (!get_mode.include) return [];
+    if (!Array.isArray(get_mode.include)){
+        return [get_mode.include];
+    }
+    return get_mode.include;
+}
+
+function getAssocOrders(includes){
+    let order = [];
+    for (let include of includes){
+        if (!include.order) continue;
+        order.push([
+            { model: include.model, as: include.as }
+        ].concat(include.order));
+    }
+    return order;
 }

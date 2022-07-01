@@ -52,6 +52,8 @@ exports.w = wrapperForController;
  * attributes (array)
  * where (array or obj)
  * include (array or obj)
+ * order (array or obj)
+ * count_use_include (boolean)
  */
 async function APIforListing(req, res, className, options = {}){
 
@@ -86,7 +88,8 @@ async function APIforListing(req, res, className, options = {}){
 
     //Sort (query: _sort)
     let $sorts = MyClass.sorts || {};
-    let order = MyClass.sort_default || [["created_at", "ASC"]];
+    let order = [];
+    order.push(MyClass.sort_default || [["created_at", "ASC"]]);
     let sort_query = req.query._sort;
     if (sort_query){
         sort_query = sort_query.split(':');
@@ -99,9 +102,17 @@ async function APIforListing(req, res, className, options = {}){
         }
     }
 
+    //Handle options.order
+    if (options.order){
+        if (!Array.isArray(options.order))options.order = [options.order];
+        for (let item of options.order){
+            order.push(item);
+        }
+    }
+
     //Make Count
     const count = await MyClass.count({
-        include,
+        include: options.count_use_include ? include : undefined,
         where: {[Op.and]: filtersApplied},
     });
 

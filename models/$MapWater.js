@@ -2,9 +2,13 @@
 const { Model, DataTypes:dt, Op } = require('sequelize');
 const { attributes:at } = require("./common");
 
+const {
+    getAreaOfPolygons, getBoundingBoxOfPolygons
+} = require('../includes/longitude_latitude_calc');
+
 module.exports = (sequelize) => {
 
-    class $MapRefImage extends Model {
+    class $MapWater extends Model {
         static associate(models) {
             // define association here
         }
@@ -13,18 +17,17 @@ module.exports = (sequelize) => {
     const model_attributes = {
         id: at.id_uuid(),
         project_id: at.project_id(),
+        polygons: at.polygons(),
         name: at.name(),
         name_l: at.name_l(),
         remarks: at.remarks(),
-        x_min: at.longitude(),
-        x_max: at.longitude(),
-        y_min: at.latitude(),
-        y_max:  at.latitude(),
-        file_key: at.file_key(),
         hide_below_logzoom: at.logzoom(),
         sort: at.sort(),
         is_locked: at.is_locked(),
-        is_hidden: at.is_hidden(),
+        _x_min: at._decimal(),
+        _x_max: at._decimal(),
+        _y_min: at._decimal(),
+        _y_max: at._decimal(),
         _names: at._names(),
         //
         created_at: at.created_at(),
@@ -44,35 +47,36 @@ module.exports = (sequelize) => {
     };
 
     const model_options = {
-        modelName: '$MapRefImage',
-        tableName: '_map_ref_images',
+        modelName: '$MapWater',
+        tableName: '_map_waters',
         timestamps: false,
         defaultScope,
         scopes,
         sequelize,
     };
 
-    $MapRefImage.init(model_attributes, model_options);
+    $MapWater.init(model_attributes, model_options);
 
     /**
      * CRUD-Related
      */
 
     //Default value for New Item
-    $MapRefImage.new_default = {
+    $MapWater.new_default = {
         hide_below_logzoom: 0,
     };
 
     //Sort modes (query: _sort, e.g. "id:asc", "id:desc")
-    $MapRefImage.sorts = {
+    $MapWater.sorts = {
         name: ($DIR) => [['name', $DIR]],
         hide_below_logzoom: ($DIR) => [['hide_below_logzoom', $DIR]],
         sort: ($DIR) => [['sort', $DIR]],
+        area: ($DIR) => [['_area', $DIR]],
     };
-    $MapRefImage.sort_default = [["sort", "ASC"]];
+    $MapWater.sort_default = [["sort", "ASC"]];
 
     //Filters (query: [filtername])
-    $MapRefImage.filters = {
+    $MapWater.filters = {
         name: (val) => ({ _names: { [Op.iLike]: `%|${val}%`} }),
         name_contains: (val) => ({ _names: { [Op.iLike]: `%${val}%`} }),
         x_min_lt: (val) => ({ x_min: { [Op.lte]: val} }),
@@ -86,39 +90,48 @@ module.exports = (sequelize) => {
     };
 
     //Default & max display limit
-    $MapRefImage.limit_default = null;
-    $MapRefImage.limit_max = null;
+    $MapWater.limit_default = null;
+    $MapWater.limit_max = null;
 
-    $MapRefImage.allow_duplicate = true;
-    $MapRefImage.allow_reorder = true;
+    $MapWater.allow_duplicate = true;
+    $MapWater.allow_reorder = true;
 
     //Display Modes for GET methods (query: _mode).
     //get_modes[type] = {where, attributes, include, include.order}
     //It can also be a function (params: item, req) returning the above-mentioned object
-    $MapRefImage.get_default = {
-        attributes: { exclude: ['_names'] },
+    $MapWater.get_default = {
+        attributes: { exclude: ['_names', 'polygons'] },
     };
-    $MapRefImage.get_modes = {
+    $MapWater.get_modes = {
+        polygons: {
+            attributes: { exclude: ['_names'] },
+        },
     };
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
-    $MapRefImage.on_save = function(item, req){
+    $MapWater.on_save = function(item, req){
         //_names
         item._names = `|${item.name}`;
         for (let l in item.name_l) item._names += `|${item.name_l[l]}`;
+        //_x_min, y_min, x_max, y_max
+        const bounding_box = getBoundingBoxOfPolygons(item.polygons) || {};
+        item._x_min = bounding_box.x_min;
+        item._x_max = bounding_box.x_max;
+        item._y_min = bounding_box.y_min;
+        item._y_max = bounding_box.y_max;
         //Done
         return item;
     };
 
     //Ignore fields in _history
-    $MapRefImage.history_ignore_fields = [];
+    $MapWater.history_ignore_fields = [];
 
     /**
      * Model Specific Methods
      */
     
     //Return Model Class
-    return $MapRefImage;
+    return $MapWater;
 
 };
