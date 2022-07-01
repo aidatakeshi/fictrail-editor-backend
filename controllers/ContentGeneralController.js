@@ -45,10 +45,15 @@ exports.getItems = async (req, res) => { await w(res, async (t) => {
         order: getAssocOrders(includes),
         mapping: (item, req) => {
             //Do Mapping On Item
-            item = displayItem(item);
+            item = displayItem(item, true);
             //Do Mapping On Assoc Items
             for (let include of includes){
-                item[include.as] = item[include.as].map(a_item => displayItem(a_item, req));
+                if (!item[include.as]) continue;
+                if (Array.isArray(item[include.as])){
+                    item[include.as] = item[include.as].map(a_item => displayItem(a_item, true));
+                }else{
+                    item[include.as] = displayItem(item[include.as], false);
+                }
             }
             return item;
         },
@@ -100,11 +105,16 @@ exports.getItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Do Mapping On Item
-    item = displayItem(item, req);
+    item = displayItem(item, false);
 
     //Do Mapping On Assoc Items
     for (let include of includes){
-        item[include.as] = item[include.as].map(a_item => displayItem(a_item, req));
+        if (!item[include.as]) continue;
+        if (Array.isArray(item[include.as])){
+            item[include.as] = item[include.as].map(a_item => displayItem(a_item, true));
+        }else{
+            item[include.as] = displayItem(item[include.as], false);
+        }
     }
 
     //Return Data
@@ -147,7 +157,7 @@ exports.createItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return new project obj if success
-    return res.send(displayItem(item, req));
+    return res.send(displayItem(item, false));
 
 })};
 
@@ -184,13 +194,13 @@ exports.editItem = async (req, res) => { await w(res, async (t) => {
     //Proceed
     return APIforSavingWithHistory(req, res, item, params, {
         mapping_history: (item, req) => {
-            item = displayItem(item);
+            item = displayItem(item, false);
             if ($Class.history_ignore_fields){
                 for (let field of $Class.history_ignore_fields) delete item[field];
             }
             return item;
         },
-        mapping: (item, req) => displayItem(item, req),
+        mapping: (item, req) => displayItem(item, false),
         on_save: $Class.on_save,
     });
 
@@ -230,7 +240,7 @@ exports.removeItem = async (req, res) => { await w(res, async (t) => {
     }, t);
 
     //Return old project obj
-    return res.send(displayItem(item, req));
+    return res.send(displayItem(item, false));
 
 })};
 
@@ -276,7 +286,7 @@ exports.duplicateItem = async (req, res) => { await w(res, async (t) => {
     params.created_at = Math.floor(new Date().getTime() / 1000);
 
     //Merge with old item
-    params = { ...displayItem(old_item), ...params };
+    params = { ...displayItem(old_item, false), ...params };
 
     //Call pre-save function
     if ($Class.on_save){
@@ -292,7 +302,7 @@ exports.duplicateItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Return new project obj if success
-    return res.send(displayItem(new_item, req));
+    return res.send(displayItem(new_item, false));
 
 })};
 
@@ -363,10 +373,13 @@ function getClassName(req){
     return `$${className}`;
 }
 
-function displayItem(item, req){
+function displayItem(item, isList = false){
     if (item.toJSON) item = item.toJSON();
     for (let field of ['project_id', 'deleted_at', 'deleted_by', '_history']){
         delete item[field];
+    }
+    if (isList){
+        for (let field of ['created_at', 'created_by']) delete item[field];
     }
     return item;
 }

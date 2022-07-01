@@ -6,7 +6,10 @@ module.exports = (sequelize) => {
 
     class $Region extends Model {
         static associate(models) {
-            // define association here
+            models.$Region.belongsTo(models.$RegionBroader, {
+                as: 'region_broader',
+                foreignKey: 'region_broader_id',
+            });
         }
     }
 
@@ -117,6 +120,15 @@ module.exports = (sequelize) => {
         polygons: {
             attributes: { exclude: ['_names'] },
         },
+        region_broader: (req) => ({
+            include: {
+                model: sequelize.models.$RegionBroader,
+                where: {project_id: req.params.project_id},
+                as: 'region_broader',
+                attributes: { exclude: ['_names'] },
+            },
+            attributes: { exclude: ['_names', 'polygons', '_land_polygons'] },
+        }),
     };
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.

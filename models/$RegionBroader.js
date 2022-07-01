@@ -92,7 +92,7 @@ module.exports = (sequelize) => {
                 where: {project_id: req.params.project_id},
                 as: 'regions',
                 order: ['sort', 'ASC'],
-                attributes: { exclude: ['_names', 'polygons', '_land_polygons'] },
+                attributes: { exclude: ['region_broader_id', '_names', 'polygons', '_land_polygons'] },
             },
             attributes: { exclude: ['_names'] },
         }),
