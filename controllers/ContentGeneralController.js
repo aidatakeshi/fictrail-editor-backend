@@ -26,11 +26,9 @@ exports.getItems = async (req, res) => { await w(res, async (t) => {
     }
 
     //Get Mode (query: _mode)
-    let get_mode = $Class.get_default || {};
-    const _get_mode = req.query._mode;
-    if (_get_mode && $Class.get_modes){
-        get_mode = $Class.get_modes[_get_mode] || {};
-        if (typeof get_mode === 'function') get_mode = get_mode(req);
+    let get_mode = {};
+    if ($Class.get_mode){
+        get_mode = $Class.get_mode(req.query._mode, req, excluded_fields_assoc);
     }
     const includes = getAssocIncludes(get_mode);
 
@@ -42,21 +40,8 @@ exports.getItems = async (req, res) => { await w(res, async (t) => {
         },
         attributes: get_mode.attributes,
         include: get_mode.include,
-        order: getAssocOrders(includes),
-        mapping: (item, req) => {
-            //Do Mapping On Item
-            item = displayItem(item, true);
-            //Do Mapping On Assoc Items
-            for (let include of includes){
-                if (!item[include.as]) continue;
-                if (Array.isArray(item[include.as])){
-                    item[include.as] = item[include.as].map(a_item => displayItem(a_item, true));
-                }else{
-                    item[include.as] = displayItem(item[include.as], false);
-                }
-            }
-            return item;
-        },
+        order: get_mode.order,
+        mapping: (item, req) => displayItem(item, true),
     });
     return response;
 
@@ -74,11 +59,9 @@ exports.getItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Get Mode (query: _mode)
-    let get_mode = $Class.get_default || {};
-    const _get_mode = req.query._mode;
-    if (_get_mode && $Class.get_modes){
-        get_mode = $Class.get_modes[_get_mode] || {};
-        if (typeof get_mode === 'function') get_mode = get_mode(req);
+    let get_mode = {};
+    if ($Class.get_mode){
+        get_mode = $Class.get_mode(req.query._mode, req, excluded_fields_assoc);
     }
     const includes = getAssocIncludes(get_mode);
 
@@ -96,7 +79,7 @@ exports.getItem = async (req, res) => { await w(res, async (t) => {
         },
         attributes: get_mode.attributes,
         include: get_mode.include,
-        order: getAssocOrders(includes),
+        order: get_mode.order,
     });
 
     //Item Not Found -> 404
@@ -104,21 +87,8 @@ exports.getItem = async (req, res) => { await w(res, async (t) => {
         return e(404, res, 'item_not_found', 'Item Not Found');
     }
 
-    //Do Mapping On Item
-    item = displayItem(item, false);
-
-    //Do Mapping On Assoc Items
-    for (let include of includes){
-        if (!item[include.as]) continue;
-        if (Array.isArray(item[include.as])){
-            item[include.as] = item[include.as].map(a_item => displayItem(a_item, true));
-        }else{
-            item[include.as] = displayItem(item[include.as], false);
-        }
-    }
-
     //Return Data
-    return res.send(item);
+    return res.send(displayItem(item, false));
 
 })};
 
@@ -373,13 +343,13 @@ function getClassName(req){
     return `$${className}`;
 }
 
+const excluded_fields = ['project_id', 'deleted_at', 'deleted_by', '_history'];
+const excluded_fields_assoc = ['project_id', 'created_at', 'created_by', 'deleted_at', 'deleted_by', '_history'];
+
 function displayItem(item, isList = false){
     if (item.toJSON) item = item.toJSON();
-    for (let field of ['project_id', 'deleted_at', 'deleted_by', '_history']){
+    for (let field of excluded_fields){
         delete item[field];
-    }
-    if (isList){
-        for (let field of ['created_at', 'created_by']) delete item[field];
     }
     return item;
 }
@@ -401,15 +371,4 @@ function getAssocIncludes(get_mode){
         return [get_mode.include];
     }
     return get_mode.include;
-}
-
-function getAssocOrders(includes){
-    let order = [];
-    for (let include of includes){
-        if (!include.order) continue;
-        order.push([
-            { model: include.model, as: include.as }
-        ].concat(include.order));
-    }
-    return order;
 }

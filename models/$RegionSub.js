@@ -4,14 +4,10 @@ const { attributes:at, combineWords } = require("./common");
 
 module.exports = (sequelize) => {
 
-    class $Region extends Model {
+    class $RegionSub extends Model {
         static associate(models) {
-            models.$Region.belongsTo(models.$RegionBroader, {
-                as: 'region_broader',
-                foreignKey: 'region_broader_id',
-            });
-            models.$Region.hasMany(models.$RegionSub, {
-                as: 'region_sub',
+            models.$RegionSub.belongsTo(models.$Region, {
+                as: 'region',
                 foreignKey: 'region_id',
             });
         }
@@ -20,7 +16,7 @@ module.exports = (sequelize) => {
     const model_attributes = {
         id: at.id_uuid(),
         project_id: at.project_id(),
-        region_broader_id: at.foreign_id(),
+        region_id: at.foreign_id(),
         name: at.name(),
         name_l: at.name_l(),
         name_suffix: at.name_s(),
@@ -72,35 +68,35 @@ module.exports = (sequelize) => {
     };
 
     const model_options = {
-        modelName: '$Region',
-        tableName: '_regions',
+        modelName: '$RegionSub',
+        tableName: '_regions_sub',
         timestamps: false,
         defaultScope,
         scopes,
         sequelize,
     };
 
-    $Region.init(model_attributes, model_options);
+    $RegionSub.init(model_attributes, model_options);
 
     /**
      * CRUD-Related
      */
     
     //Default value for New Item
-    $Region.new_default = {
+    $RegionSub.new_default = {
     };
 
     //Sort modes (query: _sort, e.g. "id:asc", "id:desc")
-    $Region.sorts = {
+    $RegionSub.sorts = {
         name: ($DIR) => [['name', $DIR]],
         sort: ($DIR) => [['sort', $DIR]],
         area: ($DIR) => [['_area', $DIR]],
     };
-    $Region.sort_default = [["sort", "ASC"]];
+    $RegionSub.sort_default = [["sort", "ASC"]];
 
     //Filters (query: [filtername])
-    $Region.filters = {
-        region_broader_id: (val) => ({region_broader_id: val}),
+    $RegionSub.filters = {
+        region_id: (val) => ({region_id: val}),
         name: (val) => ({ _names: { [Op.iLike]: `%|${val}%`} }),
         name_contains: (val) => ({ _names: { [Op.iLike]: `%${val}%`} }),
         locked: () => ({is_locked: true}),
@@ -108,42 +104,40 @@ module.exports = (sequelize) => {
     };
 
     //Default & max display limit
-    $Region.limit_default = null;
-    $Region.limit_max = null;
+    $RegionSub.limit_default = null;
+    $RegionSub.limit_max = null;
 
-    $Region.allow_duplicate = true;
-    $Region.allow_reorder = true;
+    $RegionSub.allow_duplicate = true;
+    $RegionSub.allow_reorder = true;
 
     //Display Modes for GET methods (query: _mode).
     //Returns {where, attributes, include, order}
-    $Region.get_mode = function(_mode, req, excluded_fields){
+    $RegionSub.get_mode = function(_mode, req, excluded_fields){
         const _m = sequelize.models;
         let attributes =  { exclude: ['_names'].concat(excluded_fields) };
         let include = [];
         let order = [];
-        //Complex mode, separated by ',' (e.g. 'region_sub,polygons')
+        //Complex mode, separated by ',' (e.g. 'region,polygons')
         const _modes = (_mode || '').split(',');
         //Mode: polygons
         if (!_modes.includes('polygons')){
             attributes.exclude = attributes.exclude.concat(['polygons', '_land_polygons']);
         }
-        //Mode: region_broader
-        if (_modes.includes('region_broader')){
-            const $model = {model: _m.$RegionBroader, as: 'region_broader'};
-            include.push({
+        //Mode: region, region_broader
+        if (_modes.includes('region') || _modes.includes('region_broader')){
+            const $model = {model: _m.$Region, as: 'region'};
+            const $model_b = {model: _m.$RegionBroader, as: 'region_broader'};
+            let include_item = {
                 ...$model, required: false, attributes,
                 where: {project_id: req.params.project_id},
-            });
-        }
-        //Mode: region_sub
-        if (_modes.includes('region_sub')){
-            const $model = {model: _m.$RegionSub, as: 'region_sub'};
-            include.push({
-                ...$model, required: false, attributes,
-                where: {project_id: req.params.project_id},
-                order: ['sort', 'ASC'],
-            });
-            order.push([$model, 'sort', 'ASC']);
+            };
+            if (_modes.includes('region_broader')){
+                include_item.include = {
+                    ...$model_b, required: false, attributes,
+                    where: {project_id: req.params.project_id},
+                };
+            }
+            include.push(include_item);
         }
         //Return Mode
         return {attributes, include, order};
@@ -151,7 +145,7 @@ module.exports = (sequelize) => {
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
-    $Region.on_save = function(item, req){
+    $RegionSub.on_save = function(item, req){
         //_names
         item._names = `|${combineWords(item.name, item.name_suffix)}`;
         for (let l in item.name_l) item._names += `|${combineWords(item.name_l[l], item.name_suffix_l[l])}`;
@@ -164,13 +158,13 @@ module.exports = (sequelize) => {
     };
 
     //Ignore fields in _history
-    $Region.history_ignore_fields = [];
+    $RegionSub.history_ignore_fields = [];
 
     /**
      * Model Specific Methods
      */
     
     //Return Model Class
-    return $Region;
+    return $RegionSub;
 
 };

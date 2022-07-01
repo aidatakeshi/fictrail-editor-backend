@@ -94,8 +94,9 @@ const at = {
     latitude: () => ({ type: dt.DOUBLE, allowNull: false, validate: va.decimal }),
     logzoom: () => ({ type: dt.DOUBLE, allowNull: false, validate: va.decimal }),
     name: () => ({ type: dt.TEXT, allowNull: false, validate: va.name }),
+    name_s: () => ({ type: dt.TEXT, allowNull: true, validate: va.name }),
     name_l: () => ({ type: dt.JSON, allowNull: false, defaultValue: {}, validate: va.name_l_json }),
-    remarks: () => ({ type: dt.TEXT, allowNull: false }),
+    remarks: () => ({ type: dt.TEXT, allowNull: true }),
     polygons: () => ({ type: dt.JSON, allowNull: false, defaultValue: [], validate: va.polygons }),
     sort: () => ({ type: dt.DOUBLE, allowNull: false, defaultValue: 0, validate: va.integer }),
     is_locked: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
@@ -110,3 +111,18 @@ const at = {
     _history: () => ({ type: dt.JSON }),
 };
 exports.attributes = at;
+
+/**
+ * Common Methods
+ */
+
+//Combine Words, with space between if alphanumericals
+exports.combineWords = function(word1, word2){
+    if (!word1) return "";
+    let str = word1;
+    if (word2){
+        if (word1.match(/^[0-9a-zA-Z]+$/)) str += " ";
+        str += word2;
+    }
+    return str;
+}

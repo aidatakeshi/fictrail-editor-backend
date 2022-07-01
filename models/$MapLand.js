@@ -98,15 +98,18 @@ module.exports = (sequelize) => {
     $MapLand.allow_reorder = true;
 
     //Display Modes for GET methods (query: _mode).
-    //get_modes[type] = {where, attributes, include, include.order}
-    //It can also be a function (params: item, req) returning the above-mentioned object
-    $MapLand.get_default = {
-        attributes: { exclude: ['_names', 'polygons'] },
-    };
-    $MapLand.get_modes = {
-        polygons: {
-            attributes: { exclude: ['_names'] },
-        },
+    //Returns {where, attributes, include, order}
+    $MapLand.get_mode = function(_mode, req){
+        //Mode: polygons
+        if (_mode == "polygons"){
+            return {
+                attributes: { exclude: ['_names'] },
+            };
+        }
+        //Default
+        return {
+            attributes: { exclude: ['_names', 'polygons'] },
+        };
     };
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.

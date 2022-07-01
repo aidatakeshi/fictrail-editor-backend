@@ -97,15 +97,18 @@ module.exports = (sequelize) => {
     $MapWater.allow_reorder = true;
 
     //Display Modes for GET methods (query: _mode).
-    //get_modes[type] = {where, attributes, include, include.order}
-    //It can also be a function (params: item, req) returning the above-mentioned object
-    $MapWater.get_default = {
-        attributes: { exclude: ['_names', 'polygons'] },
-    };
-    $MapWater.get_modes = {
-        polygons: {
-            attributes: { exclude: ['_names'] },
-        },
+    //Returns {where, attributes, include, order}
+    $MapWater.get_mode = function(_mode, req){
+        //Mode: polygons
+        if (_mode == "polygons"){
+            return {
+                attributes: { exclude: ['_names'] },
+            };
+        }
+        //Default
+        return {
+            attributes: { exclude: ['_names', 'polygons'] },
+        };
     };
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.

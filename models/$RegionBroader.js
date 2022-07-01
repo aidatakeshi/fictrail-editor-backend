@@ -7,7 +7,7 @@ module.exports = (sequelize) => {
     class $RegionBroader extends Model {
         static associate(models) {
             models.$RegionBroader.hasMany(models.$Region, {
-                as: 'regions',
+                as: 'region',
                 foreignKey: 'region_broader_id',
             });
         }
@@ -80,22 +80,38 @@ module.exports = (sequelize) => {
     $RegionBroader.allow_reorder = true;
 
     //Display Modes for GET methods (query: _mode).
-    //get_modes[type] = {where, attributes, include, include.order}
-    //It can also be a function (params: item, req) returning the above-mentioned object
-    $RegionBroader.get_default = {
-        attributes: { exclude: ['_names'] },
-    };
-    $RegionBroader.get_modes = {
-        regions: (req) => ({
-            include: {
-                model: sequelize.models.$Region,
+    //Returns {where, attributes, include, order}
+    $RegionBroader.get_mode = function(_mode, req, excluded_fields){
+        const _m = sequelize.models;
+        let attributes =  { exclude: ['_names'].concat(excluded_fields) };
+        let include = [];
+        let order = [];
+        //Complex mode, separated by ',' (e.g. 'region_sub,polygons')
+        const _modes = (_mode || '').split(',');
+        //Mode: polygons
+        if (!_modes.includes('polygons')){
+            attributes.exclude = attributes.exclude.concat(['polygons', '_land_polygons']);
+        }
+        //Mode: region / region_sub
+        if (_modes.includes('region') || _modes.includes('region_sub')){
+            const $model = {model: _m.$Region, as: 'region'};
+            const $model_sub = {model: _m.$RegionSub, as: 'region_sub'};
+            let include_item = {
+                ...$model, required: false, attributes,
                 where: {project_id: req.params.project_id},
-                as: 'regions',
-                order: ['sort', 'ASC'],
-                attributes: { exclude: ['region_broader_id', '_names', 'polygons', '_land_polygons'] },
-            },
-            attributes: { exclude: ['_names'] },
-        }),
+            };
+            order.push([$model, 'sort', 'ASC']);
+            if (_modes.includes('region_sub')){
+                include_item.include = {
+                    ...$model_sub, required: false, attributes,
+                    where: {project_id: req.params.project_id},
+                };
+                order.push([$model, $model_sub, 'sort', 'ASC']);
+            }
+            include.push(include_item);
+        }
+        //Return Mode
+        return {attributes, include, order};
     };
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
@@ -104,7 +120,7 @@ module.exports = (sequelize) => {
         //_names
         item._names = `|${item.name}`;
         for (let l in item.name_l) item._names += `|${item.name_l[l]}`;
-        item._names += `|${item.name_short}`;
+        if (item.name_short) item._names += `|${item.name_short}`;
         for (let l in item.name_short_l) item._names += `|${item.name_short_l[l]}`;
         //Done
         return item;

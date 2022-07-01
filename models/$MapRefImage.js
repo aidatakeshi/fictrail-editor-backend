@@ -93,12 +93,12 @@ module.exports = (sequelize) => {
     $MapRefImage.allow_reorder = true;
 
     //Display Modes for GET methods (query: _mode).
-    //get_modes[type] = {where, attributes, include, include.order}
-    //It can also be a function (params: item, req) returning the above-mentioned object
-    $MapRefImage.get_default = {
-        attributes: { exclude: ['_names'] },
-    };
-    $MapRefImage.get_modes = {
+    //Returns {where, attributes, include, order}
+    $MapRefImage.get_mode = function(_mode, req){
+        //Default
+        return {
+            attributes: { exclude: ['_names'] },
+        };
     };
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
