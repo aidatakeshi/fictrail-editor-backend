@@ -39,6 +39,7 @@ const va = {
     email: {
         isEmail: {msg: "Invalid Email Address"}
     },
+    color: {length255},
     password: {
         empty,
         passwordLength(value){
@@ -96,6 +97,7 @@ const at = {
     name: () => ({ type: dt.TEXT, allowNull: false, validate: va.name }),
     name_s: () => ({ type: dt.TEXT, allowNull: true, validate: va.name }),
     name_l: () => ({ type: dt.JSON, allowNull: false, defaultValue: {}, validate: va.name_l_json }),
+    color: () => ({ type: dt.STRING, allowNull: true, validate: va.color }),
     remarks: () => ({ type: dt.TEXT, allowNull: true }),
     polygons: () => ({ type: dt.JSON, allowNull: false, defaultValue: [], validate: va.polygons }),
     sort: () => ({ type: dt.DOUBLE, allowNull: false, defaultValue: 0, validate: va.integer }),
