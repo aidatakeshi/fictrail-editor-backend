@@ -1,6 +1,8 @@
 'use strict';
 const { Model, DataTypes:dt, Op } = require('sequelize');
-const { attributes:at, combineWords } = require("./common");
+const {
+    attributes:at, getSearchableNameString,
+} = require("./common");
 
 module.exports = (sequelize) => {
 
@@ -31,13 +33,8 @@ module.exports = (sequelize) => {
         remarks: at.remarks(),
         max_speed_kph: at.decimal(),
         sections: ({ type: dt.JSON, allowNull: false, defaultValue: [] }),
-        _length_km: at.decimal(),
-        _x_min: at.decimal(),
-        _x_max: at.decimal(),
-        _y_min: at.decimal(),
-        _y_max: at.decimal(),
-        _names: at._names(),
-        _station_ids: at._ids(),
+        //
+        _data: at._data(),
         //
         created_at: at.created_at(),
         created_by: at.created_by(),
@@ -72,16 +69,28 @@ module.exports = (sequelize) => {
     
     //Default value for New Item
     $RailLineSub.new_default = {
+        _data: {
+            length_km: null,
+            x_min: null, x_max: null, y_min: null, y_max: null,
+            name_search: '',
+            station_ids: '',
+        },
     };
 
-    //Sort modes (query: _sort, e.g. "id:asc", "id:desc")
-    $RailLineSub.sorts = {
-        name: ($DIR) => [['name', $DIR]],
-        name_short: ($DIR) => [['name_short', $DIR]],
+    //Sort modes (query: _sort, e.g. "id:desc", "name:asc:en")
+    $RailLineSub.sortables = {
+        name: ($DIR, $lang) => {
+            if (!$lang) return [['name', $DIR]];
+            return [[`name_l.${$lang}`, $DIR]];
+        },
+        name_short: ($DIR, $lang) => {
+            if (!$lang) return [['name_short', $DIR]];
+            return [[`name_short_l.${$lang}`, $DIR]];
+        },
         rail_line_id: ($DIR) => [['rail_line_id', $DIR]],
         rail_operator_id: ($DIR) => [['rail_operator_id', $DIR]],
         max_speed_kph: ($DIR) => [['max_speed_kph', $DIR]],
-        length_km: ($DIR) => [['_length_km', $DIR]],
+        length_km: ($DIR) => [['_data.length_km', $DIR]],
     };
     $RailLineSub.sort_default = [["name", "ASC"]];
 
@@ -89,8 +98,9 @@ module.exports = (sequelize) => {
     $RailLineSub.filters = {
         rail_line_id: (val) => ({rail_line_id: val}),
         rail_operator_id: (val) => ({rail_operator_id: val}),
-        name: (val) => ({ _names: { [Op.iLike]: `%|${val}%`} }),
-        name_contains: (val) => ({ _names: { [Op.iLike]: `%${val}%`} }),
+        name: (val) => ({ '_data.name_search': { [Op.iLike]: `%|${val}%`} }),
+        name_contains: (val) => ({ '_data.name_search': { [Op.iLike]: `%${val}%`} }),
+        station_id: (val) => ({ '_data.station_ids': { [Op.iLike]: `|${val}%`} }),
     };
 
     //Default & max display limit
@@ -102,12 +112,9 @@ module.exports = (sequelize) => {
 
     //Display Modes for GET methods (query: _mode).
     //Returns {where, attributes, include, order}
-    $RailLineSub.get_mode = function(_mode, req, excluded_fields){
+    $RailLineSub.getMode = function(_mode, req, excluded_fields){
         const _m = sequelize.models;
-        let exclude = excluded_fields.concat([
-            '_names', '_station_ids', '_rail_operator_ids'
-        ]);
-        let attributes =  { exclude };
+        let attributes =  { exclude: excluded_fields };
         let include = [];
         let order = [];
         //Complex mode, separated by ',' (e.g. 'rail_line,sections')
@@ -154,25 +161,29 @@ module.exports = (sequelize) => {
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
-    $RailLineSub.on_save = async function(item, req){
-        const line = await $RailLineSub.getRailLine(item);
-        if (!line) return item;
-        //_names
-        item._names = $RailLineSub.getNamesForSearching(item, line);
-        //Update Bounding Box
-        item = $RailLineSub.updateBoundingBox(item);
+    $RailLineSub.onSave = async function(subline_data, req){
+        let _data = {...$RailLineSub.new_default._data, ...subline_data._data};
+        //Get Line
+        const line = await $RailLineSub.getRailLine(subline_data);
+        if (!line) return subline_data;
         //Update Length_km
-        item._length_km = $RailLineSub.getLengthInKm(item.sections);
+        _data.length_km = $RailLineSub.getLengthInKm(subline_data.sections);
+        //Update Bounding Box
+        const sections = $RailLineSub.updateSectionsBoundingBoxes(subline_data.sections);
+        _data = {..._data, ...$RailLineSub.getOverallBoundingBox(subline_data)};
+        //name_search
+        _data.name_search = getSearchableNameString(line.toJSON())
+        + getSearchableNameString(subline_data);
         //Update Station IDs
-        item._station_ids = $RailLineSub.getStationIDs(item.sections);
+        _data.station_ids = $RailLineSub.getStationIDs(subline_data.sections);
         //Call line (mother-type) to update
-        line.sub_line_is_updated(item);
+        line.onSubLineUpdated(subline_data);
         //Done
-        return item;
+        return {...subline_data, _data};
     };
 
     /**
-     * Model Specific Methods
+     * Association-Related
      */
 
     //Get Rail Line (mothertype) Item
@@ -184,58 +195,59 @@ module.exports = (sequelize) => {
         }});
         return line;
     }
+    $RailLineSub.prototype.getRailLine = async function(){
+        return $RailLineSub.getRailLine(this);
+    }
 
     //Called when Rail Line (mothertype) Item is updated
-    $RailLineSub.prototype.line_is_updated = async function(line){
-        await this.update({
-            _names: $RailLineSub.getNamesForSearching(this.toJSON(), line),
-        });
+    $RailLineSub.prototype.onLineUpdated = async function(line_data){
+        let _data = {...$RailLineSub.new_default._data, ...this._data};
+        //name_search
+        _data.name_search = getSearchableNameString(line_data)
+         + getSearchableNameString(this.toJSON());
+         //Update Me
+        this._data = _data;
+        this.changed('_data', true);
+        this.save();
     }
 
-    //Get Names for Searching
-    $RailLineSub.getNamesForSearching = function(subline, line){
-        let _name = '';
-        //Line
-        if (line.name) _name += `|${line.name}`;
-        for (let l in line.name_l) _name += `|${line.name_l[l]}`;
-        if (line.name_short) _name += `|${line.name_short}`;
-        for (let l in line.name_short_l) _name += `|${line.name_short_l[l]}`;
-        //Subline
-        _name += `|${subline.name}`;
-        for (let l in subline.name_l) _name += `|${subline.name_l[l]}`;
-        if (subline.name_short) _name += `|${subline.name_short}`;
-        for (let l in subline.name_short_l) _name += `|${subline.name_short_l[l]}`;
-        return _name;
-    }
+    /**
+     * Model Specific Methods
+     */
 
     //Get Length in Km
     $RailLineSub.getLengthInKm = function(sections){
-        const values = sections.filter(s => s._distance_km).map(s => s._distance_km);
-        return values.reduce((prev, curr) => (prev + curr), 0);
+        return sections.map(s => s._distance_km)
+        .filter(Number.isFinite).reduce((prev, curr) => (prev + curr), 0);
     }
 
     //Get Station IDs
     $RailLineSub.getStationIDs = function(sections){
         return sections.filter(s => s.station_id).map(s => `|${s.station_id}`).join('');
     }
-    
-    //Update Bounding Box
-    $RailLineSub.updateBoundingBox = function(item){
-        const finite = Number.isFinite;
-        for (let i in item.sections){
-            const segments = item.sections[i].segments || [];
-            const x_array = segments.filter(s => finite(s.x)).map(s => s.x);
-            const y_array = segments.filter(s =>finite(s.y)).map(s => s.y);
-            item.sections[i]._x_min = Math.min(...x_array);
-            item.sections[i]._x_max = Math.max(...x_array);
-            item.sections[i]._y_min = Math.min(...y_array);
-            item.sections[i]._y_max = Math.max(...y_array);
+
+    //Update Section Bounding Boxes
+    $RailLineSub.updateSectionsBoundingBoxes = function(sections){
+        for (let i in sections){
+            const segments = sections[i].segments || [];
+            const x_array = segments.map(s => s.x).filter(Number.isFinite);
+            const y_array = segments.map(s => s.y).filter(Number.isFinite);
+            sections[i]._x_min = Math.min(...x_array);
+            sections[i]._x_max = Math.max(...x_array);
+            sections[i]._y_min = Math.min(...y_array);
+            sections[i]._y_max = Math.max(...y_array);
         }
-        item._x_min = Math.min(...item.sections.filter(s => finite(s._x_min)).map(s => s._x_min));
-        item._x_max = Math.min(...item.sections.filter(s => finite(s._x_max)).map(s => s._x_max));
-        item._y_min = Math.min(...item.sections.filter(s => finite(s._y_min)).map(s => s._y_min));
-        item._y_max = Math.min(...item.sections.filter(s => finite(s._y_max)).map(s => s._y_max));
-        return item;
+        return sections;
+    }
+    
+    //Get Overall Bounding Box
+    $RailLineSub.getOverallBoundingBox = function(item){
+        return {
+            x_min: Math.min(...item.sections.map(s => s._x_min).filter(Number.isFinite)),
+            x_max: Math.min(...item.sections.map(s => s._x_max).filter(Number.isFinite)),
+            y_min: Math.min(...item.sections.map(s => s._y_min).filter(Number.isFinite)),
+            y_max: Math.min(...item.sections.map(s => s._y_max).filter(Number.isFinite)),
+        };
     }
     
     //Return Model Class

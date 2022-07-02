@@ -105,6 +105,7 @@ const at = {
     is_locked: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
     is_hidden: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
     decimal: () => ({ type: dt.DOUBLE, allowNull: true }),
+    _data: () => ({ type: dt.JSON, allowNull: false, defaultValue: {} }),
     _names: () => ({ type: dt.TEXT, allowNull: true }),
     _ids: () => ({ type: dt.TEXT, allowNull: true }),
     //
@@ -121,12 +122,39 @@ exports.attributes = at;
  */
 
 //Combine Words, with space between if alphanumericals
-exports.combineWords = function(word1, word2){
-    if (!word1) return "";
-    let str = word1;
-    if (word2){
-        if (word1.match(/^[0-9a-zA-Z]+$/)) str += " ";
-        str += word2;
+exports.combineWords = function(...words){
+    let str = "";
+    words = words.filter(word => (word||'').length);
+    for (let i = 0; i < words.length; i++){
+        if (i > 0){
+            if (words[i-1].match(/^[0-9a-zA-Z]+$/)) str += " ";
+        }
+        str += words[i];
     }
     return str;
+}
+
+//Get Searchable Name String (i.e. _data.name_search)
+exports.getSearchableNameString = function(item = {}){
+    let phrases = [];
+    //name_prefix, name, name_suffix
+    var str = exports.combineWords(item.name_prefix, item.name, item.name_suffix);
+    if (str) phrases.push(str);
+    //name_prefix_l, name_l, name_suffix_l
+    if (item.name_l){
+        for (let l in item.name_l){
+            var str = exports.combineWords((item.name_prefix_l||{})[l], item.name_l[l], (item.name_suffix_l||{})[l]);
+            if (str) phrases.push(str);
+        }
+    }
+    //name_short
+    if (item.name_short) phrases.push(item.name_short);
+    //name_short_l
+    if(item.name_short_l){
+        for (let l in item.name_short_l){
+            if (item.name_short_l[l]) phrases.push(item.name_short_l[l]);
+        }
+    }
+    //Return string
+    return phrases.map(s => `|${s}`).join('');
 }

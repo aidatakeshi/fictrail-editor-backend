@@ -87,7 +87,7 @@ async function APIforListing(req, res, className, options = {}){
     }
 
     //Sort (query: _sort)
-    let $sorts = MyClass.sorts || {};
+    let $sortables = MyClass.sortables || {};
     let order = [];
     order.push(MyClass.sort_default || [["created_at", "ASC"]]);
     let sort_query = req.query._sort;
@@ -96,9 +96,11 @@ async function APIforListing(req, res, className, options = {}){
         let sort_direction = sort_query[1] || 'ASC';
         if (sort_direction.toUpperCase() == "ASC") sort_direction = "ASC";
         else sort_direction = "DESC";
-        let sort_key = sort_query[0];
-        if ($sorts[sort_key]){
-            order = $sorts[sort_key](sort_direction);
+        let sort_key = sort_query.shift();
+        sort_query.shift();
+        console.log(sort_query);
+        if ($sortables[sort_key]){
+            order = $sortables[sort_key](sort_direction, ...sort_query);
         }
     }
 
@@ -170,7 +172,7 @@ exports.APIforListing = APIforListing;
  * [options]
  * mapping_history (function: item, req) - data mapping for saving history
  * mapping (function: item, req) - data mapping for returning
- * on_save (function: item, req) - pre-save process function
+ * onSave (function: item, req) - pre-save process function
  */
 async function APIforSavingWithHistory(req, res, item, filteredQueries, options = {}){
 
@@ -185,8 +187,8 @@ async function APIforSavingWithHistory(req, res, item, filteredQueries, options 
     }
 
     //Call pre-save function to new data
-    if (options.on_save){
-        new_data = await options.on_save(new_data, req);
+    if (options.onSave){
+        new_data = await options.onSave(new_data, req);
     }
 
     //Get Delta between new & old data

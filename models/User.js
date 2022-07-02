@@ -67,7 +67,7 @@ module.exports = (sequelize) => {
     /**
      * CRUD-Related
      */
-    User.sorts = { //e.g. "id:asc", "id:desc"
+    User.sortables = { //e.g. "id:desc", "name:asc:en"
         id: ($DIR) => [
             [sequelize.fn('LOWER', sequelize.col('id')), $DIR],
         ],

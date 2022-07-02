@@ -25,15 +25,12 @@ module.exports = {
         const [_x_min, _x_max, _y_min, _y_max] = [double, double, double, double];
         const hide_below_logzoom = { type: Sequelize.DOUBLE, allowNull: false, defaultValue: 0 };
         const polygons = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
-        const _land_polygons = polygons;
         const _area = { type: Sequelize.DOUBLE, allowNull: true };
-        const _land_area = _area;
 
         const name = { type: Sequelize.TEXT, allowNull: true };
         const name_l = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
         const [name_short, name_suffix] = [name, name];
         const [name_short_l, name_suffix_l] = [name_l, name_l];
-        const _names = { type: Sequelize.TEXT, allowNull: true };
         const remarks = { type: Sequelize.TEXT, allowNull: true };
 
         const color = { type: Sequelize.STRING, allowNull: true };
@@ -58,9 +55,9 @@ module.exports = {
         const is_locked = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false };
         const is_hidden = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false };
 
-        const _rail_operator_ids = { type: Sequelize.TEXT, allowNull: false, defaultValue: "" };
-        const _station_ids = { type: Sequelize.TEXT, allowNull: false, defaultValue: "" };
-
+        const _data = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
+        const _polygons = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
+        
         const _history = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
         const created_at = { type: Sequelize.BIGINT, allowNull: false, defaultValue: 0 };
         const created_by = { type: Sequelize.STRING, allowNull: true };
@@ -74,7 +71,7 @@ module.exports = {
             file_key,
             hide_below_logzoom,
             sort, is_locked, is_hidden, remarks,
-            _names,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -83,8 +80,7 @@ module.exports = {
             polygons, name, name_l,
             hide_below_logzoom,
             sort, is_locked, remarks,
-            _x_min, _x_max, _y_min, _y_max,
-            _area, _names,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -93,8 +89,7 @@ module.exports = {
             polygons, name, name_l,
             hide_below_logzoom,
             sort, is_locked, remarks,
-            _x_min, _x_max, _y_min, _y_max,
-            _names,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -102,7 +97,7 @@ module.exports = {
             id, project_id,
             name, name_l, name_short, name_short_l,
             sort, remarks,
-            _names,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -111,8 +106,8 @@ module.exports = {
             region_broader_id,
             name, name_l, name_suffix, name_suffix_l, name_short, name_short_l, remarks,
             sort, is_locked,
-            polygons, _land_polygons,
-            _land_area, _names,
+            polygons, _polygons,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -121,15 +116,16 @@ module.exports = {
             region_id,
             name, name_l, name_suffix, name_suffix_l, name_short, name_short_l, remarks,
             sort, is_locked,
-            polygons, _land_polygons,
-            _land_area, _names,
+            polygons, _polygons,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
         await queryInterface.createTable('_rail_operator_types', {
             id, project_id,
             name, name_l, remarks,
-            sort, _names,
+            sort,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -139,7 +135,7 @@ module.exports = {
             name, name_l, name_short, name_short_l,
             color, color_text, logo_file_key,
             remarks, sort,
-            _names,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -147,7 +143,8 @@ module.exports = {
             id, project_id,
             name, name_l, remarks,
             map_color, map_thickness,
-            sort, _names,
+            sort,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -155,8 +152,7 @@ module.exports = {
             id, project_id,
             rail_line_type_id,
             name, name_l, name_short, name_short_l, remarks,
-            _names, _rail_operator_ids, _length_km,
-            _x_min, _x_max, _y_min, _y_max,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -166,8 +162,7 @@ module.exports = {
             name, name_l, name_short, name_short_l,
             color, color_text, remarks,
             max_speed_kph, sections,
-            _length_km, _x_min, _x_max, _y_min, _y_max,
-            _names, _station_ids,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -176,7 +171,8 @@ module.exports = {
             rail_operator_id,
             name, name_l, name_short, name_short_l,
             color, color_text, is_premium, remarks,
-            sort, _names,
+            sort,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -185,7 +181,8 @@ module.exports = {
             train_service_type_id, major_rail_operator_id,
             name, name_l, name_short, name_short_l,
             color, color_text, remarks,
-            sort, _names,
+            sort,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -196,14 +193,16 @@ module.exports = {
             longitude, latitude, altitude_m,
             tracks, track_info,
             is_major, is_signal_only, is_in_use,
-            remarks, _names,
+            remarks,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
         await queryInterface.createTable('_train_vehicle_types', {
             id, project_id,
             name, name_l,
-            remarks, sort, _names,
+            remarks, sort,
+            _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -212,7 +211,7 @@ module.exports = {
             train_vehicle_type_id,
             name, name_l, remarks,
             specs, sort,
-            _results, _results_by_kph, _names,
+            _results, _results_by_kph, _data,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 

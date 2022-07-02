@@ -1,6 +1,8 @@
 'use strict';
 const { Model, DataTypes:dt, Op } = require('sequelize');
-const { attributes:at, combineWords } = require("./common");
+const {
+    attributes:at, getSearchableNameString, combineWords,
+} = require("./common");
 
 module.exports = (sequelize) => {
 
@@ -27,6 +29,11 @@ module.exports = (sequelize) => {
         name_suffix_l: at.name_l(),
         name_short: at.name_s(),
         name_short_l: at.name_l(),
+        remarks: at.remarks(),
+        is_locked: at.is_locked(),
+        polygons: at.polygons(),
+        sort: at.sort(),
+        //
         $name_full: {
             type: dt.VIRTUAL,
             get: function() {
@@ -47,13 +54,9 @@ module.exports = (sequelize) => {
             },
             set: () => {},
         },
-        remarks: at.remarks(),
-        is_locked: at.is_locked(),
-        polygons: at.polygons(),
-        sort: at.sort(),
-        _land_polygons: at.polygons(),
-        _land_area: at.decimal(),
-        _names: at._names(),
+        //
+        _polygons: at._data(),
+        _data: at._data(),
         //
         created_at: at.created_at(),
         created_by: at.created_by(),
@@ -88,21 +91,26 @@ module.exports = (sequelize) => {
     
     //Default value for New Item
     $Region.new_default = {
+        _data: {},
+        _polygons: {},
     };
 
-    //Sort modes (query: _sort, e.g. "id:asc", "id:desc")
-    $Region.sorts = {
-        name: ($DIR) => [['name', $DIR]],
+    //Sort modes (query: _sort, e.g. "id:desc", "name:asc:en")
+    $Region.sortables = {
+        name: ($DIR, $lang) => {
+            if (!$lang) return [['name', $DIR]];
+            return [[`name_l.${$lang}`, $DIR]];
+        },
         sort: ($DIR) => [['sort', $DIR]],
-        area: ($DIR) => [['_land_area', $DIR]],
+        area: ($DIR) => [['_data.land_area', $DIR]],
     };
     $Region.sort_default = [["sort", "ASC"]];
 
     //Filters (query: [filtername])
     $Region.filters = {
         region_broader_id: (val) => ({region_broader_id: val}),
-        name: (val) => ({ _names: { [Op.iLike]: `%|${val}%`} }),
-        name_contains: (val) => ({ _names: { [Op.iLike]: `%${val}%`} }),
+        name: (val) => ({ '_data.name_search': { [Op.iLike]: `%|${val}%`} }),
+        name_contains: (val) => ({ '_data.name_search': { [Op.iLike]: `%${val}%`} }),
         locked: () => ({is_locked: true}),
         unlocked: () => ({is_locked: false}),
     };
@@ -116,16 +124,16 @@ module.exports = (sequelize) => {
 
     //Display Modes for GET methods (query: _mode).
     //Returns {where, attributes, include, order}
-    $Region.get_mode = function(_mode, req, excluded_fields){
+    $Region.getMode = function(_mode, req, excluded_fields){
         const _m = sequelize.models;
-        let attributes =  { exclude: ['_names'].concat(excluded_fields) };
+        let attributes =  { exclude: excluded_fields };
         let include = [];
         let order = [];
         //Complex mode, separated by ',' (e.g. 'region_sub,polygons')
         const _modes = (_mode || '').split(',');
         //Mode: polygons
         if (!_modes.includes('polygons')){
-            attributes.exclude = attributes.exclude.concat(['polygons', '_land_polygons']);
+            attributes.exclude = attributes.exclude.concat(['polygons', '_polygons']);
         }
         //Mode: region_broader
         if (_modes.includes('region_broader')){
@@ -151,12 +159,11 @@ module.exports = (sequelize) => {
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
-    $Region.on_save = function(item, req){
-        //_names
-        item._names = `|${combineWords(item.name, item.name_suffix)}`;
-        for (let l in item.name_l) item._names += `|${combineWords(item.name_l[l], item.name_suffix_l[l])}`;
-        if (item.name_short) item._names += `|${item.name_short}`;
-        for (let l in item.name_short_l) item._names += `|${item.name_short_l[l]}`;
+    $Region.onSave = async function(item, req){
+        //name_search
+        item._data.name_search = getSearchableNameString(item);
+        //land_area, _polygons.land
+        //...
         //Done
         return item;
     };

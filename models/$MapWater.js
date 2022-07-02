@@ -1,9 +1,10 @@
 'use strict';
 const { Model, DataTypes:dt, Op } = require('sequelize');
-const { attributes:at } = require("./common");
-
 const {
-    getAreaOfPolygons, getBoundingBoxOfPolygons
+    attributes:at, getSearchableNameString,
+} = require("./common");
+const {
+    getAreaOfPolygons, getBoundingBoxOfPolygons,
 } = require('../includes/longitude_latitude_calc');
 
 module.exports = (sequelize) => {
@@ -24,11 +25,8 @@ module.exports = (sequelize) => {
         hide_below_logzoom: at.logzoom(),
         sort: at.sort(),
         is_locked: at.is_locked(),
-        _x_min: at.decimal(),
-        _x_max: at.decimal(),
-        _y_min: at.decimal(),
-        _y_max: at.decimal(),
-        _names: at._names(),
+        //
+        _data: at._data(),
         //
         created_at: at.created_at(),
         created_by: at.created_by(),
@@ -64,25 +62,29 @@ module.exports = (sequelize) => {
     //Default value for New Item
     $MapWater.new_default = {
         hide_below_logzoom: 0,
+        _data: {},
     };
 
-    //Sort modes (query: _sort, e.g. "id:asc", "id:desc")
-    $MapWater.sorts = {
-        name: ($DIR) => [['name', $DIR]],
+    //Sort modes (query: _sort, e.g. "id:desc", "name:asc:en")
+    $MapWater.sortables = {
+        name: ($DIR, $lang) => {
+            if (!$lang) return [['name', $DIR]];
+            return [[`name_l.${$lang}`, $DIR]];
+        },
         hide_below_logzoom: ($DIR) => [['hide_below_logzoom', $DIR]],
         sort: ($DIR) => [['sort', $DIR]],
-        area: ($DIR) => [['_area', $DIR]],
+        area: ($DIR) => [['_data.area', $DIR]],
     };
     $MapWater.sort_default = [["sort", "ASC"]];
 
     //Filters (query: [filtername])
     $MapWater.filters = {
-        name: (val) => ({ _names: { [Op.iLike]: `%|${val}%`} }),
-        name_contains: (val) => ({ _names: { [Op.iLike]: `%${val}%`} }),
-        x_min_lt: (val) => ({ x_min: { [Op.lte]: val} }),
-        x_max_gt: (val) => ({ x_max: { [Op.gte]: val} }),
-        y_min_lt: (val) => ({ y_min: { [Op.lte]: val} }),
-        y_max_gt: (val) => ({ y_max: { [Op.gte]: val} }),
+        name: (val) => ({ '_data.name_search': { [Op.iLike]: `%|${val}%`} }),
+        name_contains: (val) => ({ '_data.name_search': { [Op.iLike]: `%${val}%`} }),
+        x_min_lt: (val) => ({ '_data.x_min': { [Op.lte]: val} }),
+        x_max_gt: (val) => ({ '_data.x_max': { [Op.gte]: val} }),
+        y_min_lt: (val) => ({ '_data.y_min': { [Op.lte]: val} }),
+        y_max_gt: (val) => ({ '_data.y_max': { [Op.gte]: val} }),
         hide_in_logzoom: (val) => ({ hide_below_logzoom: { [Op.gt]: val} }),
         show_in_logzoom: (val) => ({ hide_below_logzoom: { [Op.lte]: val} }),
         locked: () => ({is_locked: true}),
@@ -98,31 +100,26 @@ module.exports = (sequelize) => {
 
     //Display Modes for GET methods (query: _mode).
     //Returns {where, attributes, include, order}
-    $MapWater.get_mode = function(_mode, req){
+    $MapWater.getMode = function(_mode, req, excluded_fields){
         //Mode: polygons
-        if (_mode == "polygons"){
-            return {
-                attributes: { exclude: ['_names'] },
-            };
-        }
+        if (_mode == "polygons") return { attributes: { exclude: excluded_fields } };
         //Default
-        return {
-            attributes: { exclude: ['_names', 'polygons'] },
-        };
+        return { attributes: { exclude: ['polygons'].concat(excluded_fields) } };
     };
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
-    $MapWater.on_save = function(item, req){
-        //_names
-        item._names = `|${item.name}`;
-        for (let l in item.name_l) item._names += `|${item.name_l[l]}`;
-        //_x_min, y_min, x_max, y_max
+    $MapWater.onSave = function(item, req){
+        //x_min,y_min, x_max, y_max
         const bounding_box = getBoundingBoxOfPolygons(item.polygons) || {};
-        item._x_min = bounding_box.x_min;
-        item._x_max = bounding_box.x_max;
-        item._y_min = bounding_box.y_min;
-        item._y_max = bounding_box.y_max;
+        item._data.x_min = bounding_box.x_min;
+        item._data.x_max = bounding_box.x_max;
+        item._data.y_min = bounding_box.y_min;
+        item._data.y_max = bounding_box.y_max;
+        //area
+        item._data.area = getAreaOfPolygons(item.polygons, true);
+        //name_search
+        item._data.name_search = getSearchableNameString(item);
         //Done
         return item;
     };

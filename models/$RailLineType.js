@@ -1,6 +1,8 @@
 'use strict';
 const { Model, DataTypes:dt, Op } = require('sequelize');
-const { attributes:at } = require("./common");
+const {
+    attributes:at, getSearchableNameString,
+} = require("./common");
 
 module.exports = (sequelize) => {
 
@@ -22,7 +24,8 @@ module.exports = (sequelize) => {
         map_color: at.color(),
         map_thickness: at.integer(),
         sort: at.sort(),
-        _names: at._names(),
+        //
+        _data: at._data(),
         //
         created_at: at.created_at(),
         created_by: at.created_by(),
@@ -57,19 +60,23 @@ module.exports = (sequelize) => {
 
     //Default value for New Item
     $RailLineType.new_default = {
+        _data: {},
     };
 
-    //Sort modes (query: _sort, e.g. "id:asc", "id:desc")
-    $RailLineType.sorts = {
-        name: ($DIR) => [['name', $DIR]],
+    //Sort modes (query: _sort, e.g. "id:desc", "name:asc:en")
+    $RailLineType.sortables = {
+        name: ($DIR, $lang) => {
+            if (!$lang) return [['name', $DIR]];
+            return [[`name_l.${$lang}`, $DIR]];
+        },
         sort: ($DIR) => [['sort', $DIR]],
     };
     $RailLineType.sort_default = [["sort", "ASC"]];
 
     //Filters (query: [filtername])
     $RailLineType.filters = {
-        name: (val) => ({ _names: { [Op.iLike]: `%|${val}%`} }),
-        name_contains: (val) => ({ _names: { [Op.iLike]: `%${val}%`} }),
+        name: (val) => ({ '_data.name_search': { [Op.iLike]: `%|${val}%`} }),
+        name_contains: (val) => ({ '_data.name_search': { [Op.iLike]: `%${val}%`} }),
     };
 
     //Default & max display limit
@@ -81,9 +88,9 @@ module.exports = (sequelize) => {
 
     //Display Modes for GET methods (query: _mode).
     //Returns {where, attributes, include, order}
-    $RailLineType.get_mode = function(_mode, req, excluded_fields){
+    $RailLineType.getMode = function(_mode, req, excluded_fields){
         const _m = sequelize.models;
-        let attributes =  { exclude: ['_names'].concat(excluded_fields) };
+        let attributes =  { excluded_fields };
         let include = [];
         let order = [];
         //Mode: rail_line
@@ -101,10 +108,9 @@ module.exports = (sequelize) => {
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
-    $RailLineType.on_save = function(item, req){
-        //_names
-        item._names = `|${item.name}`;
-        for (let l in item.name_l) item._names += `|${item.name_l[l]}`;
+    $RailLineType.onSave = function(item, req){
+        //name_search
+        item._data.name_search = getSearchableNameString(item);
         //Done
         return item;
     };

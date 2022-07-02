@@ -27,10 +27,9 @@ exports.getItems = async (req, res) => { await w(res, async (t) => {
 
     //Get Mode (query: _mode)
     let get_mode = {};
-    if ($Class.get_mode){
-        get_mode = $Class.get_mode(req.query._mode, req, excluded_fields_assoc);
+    if ($Class.getMode){
+        get_mode = $Class.getMode(req.query._mode, req, excluded_fields_assoc);
     }
-    const includes = getAssocIncludes(get_mode);
 
     //Retrieve Items
     let response = await APIforListing(req, res, className, {
@@ -60,10 +59,9 @@ exports.getItem = async (req, res) => { await w(res, async (t) => {
 
     //Get Mode (query: _mode)
     let get_mode = {};
-    if ($Class.get_mode){
-        get_mode = $Class.get_mode(req.query._mode, req, excluded_fields_assoc);
+    if ($Class.getMode){
+        get_mode = $Class.getMode(req.query._mode, req, excluded_fields_assoc);
     }
-    const includes = getAssocIncludes(get_mode);
 
     //Check If ID valid UUID
     if (!checkIDValidUUID(req.params.id)){
@@ -114,8 +112,8 @@ exports.createItem = async (req, res) => { await w(res, async (t) => {
     };
 
     //Call pre-save function
-    if ($Class.on_save){
-        params = await $Class.on_save(params, req);
+    if ($Class.onSave){
+        params = await $Class.onSave(params, req);
     }
 
     //Create item with validation
@@ -172,7 +170,7 @@ exports.editItem = async (req, res) => { await w(res, async (t) => {
             return item;
         },
         mapping: (item, req) => displayItem(item, false),
-        on_save: $Class.on_save,
+        onSave: $Class.onSave,
     });
 
 })};
@@ -260,8 +258,8 @@ exports.duplicateItem = async (req, res) => { await w(res, async (t) => {
     params = { ...displayItem(old_item, false), ...params };
 
     //Call pre-save function
-    if ($Class.on_save){
-        params = await $Class.on_save(params, req);
+    if ($Class.onSave){
+        params = await $Class.onSave(params, req);
     }
 
     //Create new item with validation
@@ -364,12 +362,4 @@ function filterQueries(queries){
 function checkIDValidUUID(id){
     const regexExp = /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/gi;
     return regexExp.test(id);
-}
-
-function getAssocIncludes(get_mode){
-    if (!get_mode.include) return [];
-    if (!Array.isArray(get_mode.include)){
-        return [get_mode.include];
-    }
-    return get_mode.include;
 }

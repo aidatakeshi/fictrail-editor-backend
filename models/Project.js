@@ -52,7 +52,7 @@ module.exports = (sequelize) => {
     /**
      * CRUD-Related
      */
-    Project.sorts = { //e.g. "id:asc", "id:desc"
+    Project.sortables = { //e.g. "id:desc", "name:asc:en"
         id: ($DIR) => [
             [sequelize.fn('LOWER', sequelize.col('id')), $DIR],
         ],

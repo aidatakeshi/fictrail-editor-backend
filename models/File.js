@@ -48,7 +48,7 @@ module.exports = (sequelize) => {
     /**
      * CRUD-Related
      */
-    File.sorts = { //e.g. "id:asc", "id:desc"
+    File.sortables = { //e.g. "id:desc", "name:asc:en"
         key: ($DIR) => [['key', $DIR]],
         name: ($DIR) => [
             [sequelize.fn('LOWER', sequelize.col('filename_original')), $DIR],
