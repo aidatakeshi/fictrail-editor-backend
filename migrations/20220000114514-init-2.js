@@ -27,6 +27,7 @@ module.exports = {
         const polygons = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
         const _land_polygons = polygons;
         const _area = { type: Sequelize.DOUBLE, allowNull: true };
+        const _land_area = _area;
 
         const name = { type: Sequelize.TEXT, allowNull: true };
         const name_l = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
@@ -56,6 +57,9 @@ module.exports = {
         const sort = { type: Sequelize.BIGINT, allowNull: false, defaultValue: 0 };
         const is_locked = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false };
         const is_hidden = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false };
+
+        const _rail_operator_ids = { type: Sequelize.TEXT, allowNull: false, defaultValue: "" };
+        const _station_ids = { type: Sequelize.TEXT, allowNull: false, defaultValue: "" };
 
         const _history = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
         const created_at = { type: Sequelize.BIGINT, allowNull: false, defaultValue: 0 };
@@ -108,7 +112,7 @@ module.exports = {
             name, name_l, name_suffix, name_suffix_l, name_short, name_short_l, remarks,
             sort, is_locked,
             polygons, _land_polygons,
-            _area, _names,
+            _land_area, _names,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -118,7 +122,7 @@ module.exports = {
             name, name_l, name_suffix, name_suffix_l, name_short, name_short_l, remarks,
             sort, is_locked,
             polygons, _land_polygons,
-            _area, _names,
+            _land_area, _names,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -151,7 +155,8 @@ module.exports = {
             id, project_id,
             rail_line_type_id,
             name, name_l, name_short, name_short_l, remarks,
-            _names,
+            _names, _rail_operator_ids, _length_km,
+            _x_min, _x_max, _y_min, _y_max,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 
@@ -161,7 +166,8 @@ module.exports = {
             name, name_l, name_short, name_short_l,
             color, color_text, remarks,
             max_speed_kph, sections,
-            _length_km, _x_min, _x_max, _y_min, _y_max, _names,
+            _length_km, _x_min, _x_max, _y_min, _y_max,
+            _names, _station_ids,
             created_at, created_by, deleted_at, deleted_by, _history,
         });
 

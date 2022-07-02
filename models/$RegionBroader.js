@@ -126,9 +126,6 @@ module.exports = (sequelize) => {
         return item;
     };
 
-    //Ignore fields in _history
-    $RegionBroader.history_ignore_fields = [];
-
     /**
      * Model Specific Methods
      */

@@ -4,9 +4,12 @@ const { attributes:at } = require("./common");
 
 module.exports = (sequelize) => {
 
-    class $MapRefImage extends Model {
+    class $RailLineType extends Model {
         static associate(models) {
-            // define association here
+            models.$RailLineType.hasMany(models.$RailLine, {
+                as: 'rail_line',
+                foreignKey: 'rail_line_type_id',
+            });
         }
     }
 
@@ -16,15 +19,9 @@ module.exports = (sequelize) => {
         name: at.name(),
         name_l: at.name_l(),
         remarks: at.remarks(),
-        x_min: at.longitude(),
-        x_max: at.longitude(),
-        y_min: at.latitude(),
-        y_max:  at.latitude(),
-        file_key: at.file_key(),
-        hide_below_logzoom: at.logzoom(),
+        map_color: at.color(),
+        map_thickness: at.integer(),
         sort: at.sort(),
-        is_locked: at.is_locked(),
-        is_hidden: at.is_hidden(),
         _names: at._names(),
         //
         created_at: at.created_at(),
@@ -44,66 +41,67 @@ module.exports = (sequelize) => {
     };
 
     const model_options = {
-        modelName: '$MapRefImage',
-        tableName: '_map_ref_images',
+        modelName: '$RailLineType',
+        tableName: '_rail_line_types',
         timestamps: false,
         defaultScope,
         scopes,
         sequelize,
     };
 
-    $MapRefImage.init(model_attributes, model_options);
+    $RailLineType.init(model_attributes, model_options);
 
     /**
      * CRUD-Related
      */
 
     //Default value for New Item
-    $MapRefImage.new_default = {
-        hide_below_logzoom: 0,
+    $RailLineType.new_default = {
     };
 
     //Sort modes (query: _sort, e.g. "id:asc", "id:desc")
-    $MapRefImage.sorts = {
+    $RailLineType.sorts = {
         name: ($DIR) => [['name', $DIR]],
-        hide_below_logzoom: ($DIR) => [['hide_below_logzoom', $DIR]],
         sort: ($DIR) => [['sort', $DIR]],
     };
-    $MapRefImage.sort_default = [["sort", "ASC"]];
+    $RailLineType.sort_default = [["sort", "ASC"]];
 
     //Filters (query: [filtername])
-    $MapRefImage.filters = {
+    $RailLineType.filters = {
         name: (val) => ({ _names: { [Op.iLike]: `%|${val}%`} }),
         name_contains: (val) => ({ _names: { [Op.iLike]: `%${val}%`} }),
-        x_min_lt: (val) => ({ x_min: { [Op.lte]: val} }),
-        x_max_gt: (val) => ({ x_max: { [Op.gte]: val} }),
-        y_min_lt: (val) => ({ y_min: { [Op.lte]: val} }),
-        y_max_gt: (val) => ({ y_max: { [Op.gte]: val} }),
-        hide_in_logzoom: (val) => ({ hide_below_logzoom: { [Op.gt]: val} }),
-        show_in_logzoom: (val) => ({ hide_below_logzoom: { [Op.lte]: val} }),
-        locked: () => ({is_locked: true}),
-        unlocked: () => ({is_locked: false}),
     };
 
     //Default & max display limit
-    $MapRefImage.limit_default = null;
-    $MapRefImage.limit_max = null;
+    $RailLineType.limit_default = null;
+    $RailLineType.limit_max = null;
 
-    $MapRefImage.allow_duplicate = true;
-    $MapRefImage.allow_reorder = true;
+    $RailLineType.allow_duplicate = true;
+    $RailLineType.allow_reorder = true;
 
     //Display Modes for GET methods (query: _mode).
     //Returns {where, attributes, include, order}
-    $MapRefImage.get_mode = function(_mode, req){
-        //Default
-        return {
-            attributes: { exclude: ['_names'] },
-        };
+    $RailLineType.get_mode = function(_mode, req, excluded_fields){
+        const _m = sequelize.models;
+        let attributes =  { exclude: ['_names'].concat(excluded_fields) };
+        let include = [];
+        let order = [];
+        //Mode: rail_line
+        if (_mode == 'rail_line'){
+            const $model = {model: _m.$RailLine, as: 'rail_line'};
+            include.push({
+                ...$model, required: false, attributes,
+                where: {project_id: req.params.project_id},
+            });
+            order.push([$model, 'name', 'ASC']);
+        }
+        //Return Mode
+        return {attributes, include, order};
     };
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
-    $MapRefImage.on_save = function(item, req){
+    $RailLineType.on_save = function(item, req){
         //_names
         item._names = `|${item.name}`;
         for (let l in item.name_l) item._names += `|${item.name_l[l]}`;
@@ -116,6 +114,6 @@ module.exports = (sequelize) => {
      */
     
     //Return Model Class
-    return $MapRefImage;
+    return $RailLineType;
 
 };

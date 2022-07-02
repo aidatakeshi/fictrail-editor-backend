@@ -24,10 +24,10 @@ module.exports = (sequelize) => {
         hide_below_logzoom: at.logzoom(),
         sort: at.sort(),
         is_locked: at.is_locked(),
-        _x_min: at._decimal(),
-        _x_max: at._decimal(),
-        _y_min: at._decimal(),
-        _y_max: at._decimal(),
+        _x_min: at.decimal(),
+        _x_max: at.decimal(),
+        _y_min: at.decimal(),
+        _y_max: at.decimal(),
         _names: at._names(),
         //
         created_at: at.created_at(),
@@ -126,9 +126,6 @@ module.exports = (sequelize) => {
         //Done
         return item;
     };
-
-    //Ignore fields in _history
-    $MapWater.history_ignore_fields = [];
 
     /**
      * Model Specific Methods

@@ -186,7 +186,7 @@ async function APIforSavingWithHistory(req, res, item, filteredQueries, options 
 
     //Call pre-save function to new data
     if (options.on_save){
-        new_data = options.on_save(new_data, req);
+        new_data = await options.on_save(new_data, req);
     }
 
     //Get Delta between new & old data

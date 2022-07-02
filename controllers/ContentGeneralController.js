@@ -115,7 +115,7 @@ exports.createItem = async (req, res) => { await w(res, async (t) => {
 
     //Call pre-save function
     if ($Class.on_save){
-        params = $Class.on_save(params, req);
+        params = await $Class.on_save(params, req);
     }
 
     //Create item with validation
@@ -165,8 +165,9 @@ exports.editItem = async (req, res) => { await w(res, async (t) => {
     return APIforSavingWithHistory(req, res, item, params, {
         mapping_history: (item, req) => {
             item = displayItem(item, false);
-            if ($Class.history_ignore_fields){
-                for (let field of $Class.history_ignore_fields) delete item[field];
+            //Ignore fields starting with '_'
+            for (let field in item){
+                if (field.substring(0, 1) === '_') delete item[field];
             }
             return item;
         },
@@ -260,7 +261,7 @@ exports.duplicateItem = async (req, res) => { await w(res, async (t) => {
 
     //Call pre-save function
     if ($Class.on_save){
-        params = $Class.on_save(params, req);
+        params = await $Class.on_save(params, req);
     }
 
     //Create new item with validation

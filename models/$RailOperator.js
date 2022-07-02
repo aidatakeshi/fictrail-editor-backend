@@ -78,7 +78,7 @@ module.exports = (sequelize) => {
     };
 
     //Default & max display limit
-    $RailOperator.limit_default = null;
+    $RailOperator.limit_default = 25;
     $RailOperator.limit_max = null;
 
     $RailOperator.allow_duplicate = true;
@@ -115,10 +115,6 @@ module.exports = (sequelize) => {
         //Done
         return item;
     };
-
-    //Ignore fields in _history
-    $RailOperator.history_ignore_fields = [];
-
     /**
      * Model Specific Methods
      */

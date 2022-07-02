@@ -52,7 +52,7 @@ module.exports = (sequelize) => {
         polygons: at.polygons(),
         sort: at.sort(),
         _land_polygons: at.polygons(),
-        _area: at._decimal(),
+        _land_area: at.decimal(),
         _names: at._names(),
         //
         created_at: at.created_at(),
@@ -94,7 +94,7 @@ module.exports = (sequelize) => {
     $Region.sorts = {
         name: ($DIR) => [['name', $DIR]],
         sort: ($DIR) => [['sort', $DIR]],
-        area: ($DIR) => [['_area', $DIR]],
+        area: ($DIR) => [['_land_area', $DIR]],
     };
     $Region.sort_default = [["sort", "ASC"]];
 
@@ -157,14 +157,9 @@ module.exports = (sequelize) => {
         for (let l in item.name_l) item._names += `|${combineWords(item.name_l[l], item.name_suffix_l[l])}`;
         if (item.name_short) item._names += `|${item.name_short}`;
         for (let l in item.name_short_l) item._names += `|${item.name_short_l[l]}`;
-        //_land_polygon, _area
-        //...
         //Done
         return item;
     };
-
-    //Ignore fields in _history
-    $Region.history_ignore_fields = [];
 
     /**
      * Model Specific Methods
