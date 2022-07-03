@@ -83,6 +83,16 @@ const va = {
             }
         }
     },
+    tracks: {
+        arrayOfStrings(value){
+            const $e = "It should be array of strings";
+            if (!Array.isArray(value)) throw new Error($e);
+            for (let item of value){
+                if (item === null) throw new Error($e);
+                if (typeof item !== 'string') throw new Error($e);
+            }
+        }
+    }
 };
 exports.validations = va;
 
@@ -101,11 +111,14 @@ const at = {
     integer: () => ({ type: dt.INTEGER, allowNull: true, validate: va.integer }),
     remarks: () => ({ type: dt.TEXT, allowNull: true }),
     polygons: () => ({ type: dt.JSON, allowNull: false, defaultValue: [], validate: va.polygons }),
+    tracks: () => ({ type: dt.JSON, allowNull: false, defaultValue: [], validate: va.tracks }),
     sort: () => ({ type: dt.DOUBLE, allowNull: false, defaultValue: 0, validate: va.integer }),
     is_locked: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
     is_hidden: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
     boolean: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
     decimal: () => ({ type: dt.DOUBLE, allowNull: true }),
+    object: () => ({ type: dt.JSON, allowNull: false, defaultValue: {} }),
+    array: () => ({ type: dt.JSON, allowNull: false, defaultValue: [] }),
     _data: () => ({ type: dt.JSON, allowNull: false, defaultValue: {} }),
     _names: () => ({ type: dt.TEXT, allowNull: true }),
     _ids: () => ({ type: dt.TEXT, allowNull: true }),

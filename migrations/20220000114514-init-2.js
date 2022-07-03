@@ -20,7 +20,7 @@ module.exports = {
         const file_key = { type: Sequelize.STRING, allowNull: true };
         const logo_file_key = file_key;
 
-        const [latitude, longitude, altitude_m] = [double, double, double];
+        const [x, y, altitude_m] = [double, double, double];
         const [x_min, x_max, y_min, y_max] = [double, double, double, double];
         const [_x_min, _x_max, _y_min, _y_max] = [double, double, double, double];
         const hide_below_logzoom = { type: Sequelize.DOUBLE, allowNull: false, defaultValue: 0 };
@@ -190,7 +190,7 @@ module.exports = {
             id, project_id,
             major_rail_operator_id, region_id,
             name, name_l, name_short, name_short_l,
-            longitude, latitude, altitude_m,
+            x, y, altitude_m,
             tracks, track_info,
             is_major, is_signal_only, is_in_use,
             remarks,

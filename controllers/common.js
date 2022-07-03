@@ -128,7 +128,11 @@ async function APIforListing(req, res, className, options = {}){
     //If Have Results...
 
     //Determine Limit
-    let limit = parseInt(req.query._limit) || MyClass.limit_default;
+    let limit = req.query._limit;
+    if (!limit && limit !== 0 && limit !== '0'){
+        limit = MyClass.limit_default;
+    }
+    limit = parseInt(limit);
     if (MyClass.limit_max){
         if (!limit || limit > MyClass.limit_max) limit = MyClass.limit_max;
     }
