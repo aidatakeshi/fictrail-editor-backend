@@ -104,6 +104,7 @@ const at = {
     sort: () => ({ type: dt.DOUBLE, allowNull: false, defaultValue: 0, validate: va.integer }),
     is_locked: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
     is_hidden: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
+    boolean: () => ({ type: dt.BOOLEAN, allowNull: false, defaultValue: false, validate: va.boolean }),
     decimal: () => ({ type: dt.DOUBLE, allowNull: true }),
     _data: () => ({ type: dt.JSON, allowNull: false, defaultValue: {} }),
     _names: () => ({ type: dt.TEXT, allowNull: true }),

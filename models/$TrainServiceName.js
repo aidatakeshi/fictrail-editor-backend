@@ -6,11 +6,15 @@ const {
 
 module.exports = (sequelize) => {
 
-    class $RailOperator extends Model {
+    class $TrainServiceName extends Model {
         static associate(models) {
-            models.$RailOperator.belongsTo(models.$RailOperatorType, {
-                as: 'rail_operator_type',
-                foreignKey: 'rail_operator_type_id',
+            models.$TrainServiceName.belongsTo(models.$TrainServiceType, {
+                as: 'train_service_type',
+                foreignKey: 'train_service_type_id',
+            });
+            models.$TrainServiceName.belongsTo(models.$RailOperator, {
+                as: 'rail_operator',
+                foreignKey: 'major_rail_operator_id',
             });
         }
     }
@@ -18,14 +22,14 @@ module.exports = (sequelize) => {
     const model_attributes = {
         id: at.id_uuid(),
         project_id: at.project_id(),
-        rail_operator_type_id: at.foreign_id(),
+        train_service_type_id: at.foreign_id(),
+        major_rail_operator_id: at.foreign_id(),
         name: at.name(),
         name_l: at.name_l(),
         name_short: at.name_s(),
         name_short_l: at.name_l(),
         color: at.color(),
         color_text: at.color(),
-        logo_file_key: at.file_key(),
         remarks: at.remarks(),
         sort: at.sort(),
         //
@@ -48,27 +52,27 @@ module.exports = (sequelize) => {
     };
 
     const model_options = {
-        modelName: '$RailOperator',
-        tableName: '_rail_operators',
+        modelName: '$TrainServiceName',
+        tableName: '_train_service_names',
         timestamps: false,
         defaultScope,
         scopes,
         sequelize,
     };
 
-    $RailOperator.init(model_attributes, model_options);
+    $TrainServiceName.init(model_attributes, model_options);
 
     /**
      * CRUD-Related
      */
 
     //Default value for New Item
-    $RailOperator.new_default = {
+    $TrainServiceName.new_default = {
         _data: {},
     };
 
     //Sort modes (query: _sort, e.g. "id:desc", "name:asc:en")
-    $RailOperator.sortables = {
+    $TrainServiceName.sortables = {
         name: ($DIR, $lang) => {
             if (!$lang) return [['name', $DIR]];
             return [[`name_l.${$lang}`, $DIR]];
@@ -79,32 +83,43 @@ module.exports = (sequelize) => {
         },
         sort: ($DIR) => [['sort', $DIR]],
     };
-    $RailOperator.sort_default = [["sort", "ASC"]];
+    $TrainServiceName.sort_default = [["sort", "ASC"]];
 
     //Filters (query: [filtername])
-    $RailOperator.filters = {
-        rail_operator_type_id: (val) => ({rail_operator_type_id: val}),
+    $TrainServiceName.filters = {
+        rail_operator_id: (val) => ({major_rail_operator_id: val}),
+        train_service_type_id: (val) => ({train_service_type_id: val}),
         name: (val) => ({ '_data.name_search': { [Op.iLike]: `%|${val}%`} }),
         name_contains: (val) => ({ '_data.name_search': { [Op.iLike]: `%${val}%`} }),
     };
 
     //Default & max display limit
-    $RailOperator.limit_default = 25;
-    $RailOperator.limit_max = null;
+    $TrainServiceName.limit_default = 25;
+    $TrainServiceName.limit_max = null;
 
-    $RailOperator.allow_duplicate = true;
-    $RailOperator.allow_reorder = true;
+    $TrainServiceName.allow_duplicate = true;
+    $TrainServiceName.allow_reorder = true;
 
     //Display Modes for GET methods (query: _mode).
     //Returns {where, attributes, include, order}
-    $RailOperator.getMode = function(_mode, req, excluded_fields){
+    $TrainServiceName.getMode = function(_mode, req, excluded_fields){
         const _m = sequelize.models;
         let attributes =  { exclude: excluded_fields };
         let include = [];
         let order = [];
-        //Mode: rail_operator_type
-        if (_mode == 'rail_operator_type'){
-            const $model = {model: _m.$RailOperatorType, as: 'rail_operator_type'};
+        //Complex mode, separated by ',' (e.g. 'train_service_type,rail_operator')
+        const _modes = (_mode || '').split(',');
+        //Mode: train_service_type
+        if (_modes.includes('train_service_type')){
+            const $model = {model: _m.$TrainServiceType, as: 'train_service_type'};
+            include.push({
+                ...$model, required: false, attributes,
+                where: {project_id: req.params.project_id},
+            });
+        }
+        //Mode: rail_operator
+        if (_modes.includes('rail_operator')){
+            const $model = {model: _m.$RailOperator, as: 'rail_operator'};
             include.push({
                 ...$model, required: false, attributes,
                 where: {project_id: req.params.project_id},
@@ -116,7 +131,7 @@ module.exports = (sequelize) => {
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
-    $RailOperator.onSave = function(item, req){
+    $TrainServiceName.onSave = function(item, req){
         //name_search
         item._data.name_search = getSearchableNameString(item);
         //Done
@@ -127,6 +142,6 @@ module.exports = (sequelize) => {
      */
     
     //Return Model Class
-    return $RailOperator;
+    return $TrainServiceName;
 
 };
