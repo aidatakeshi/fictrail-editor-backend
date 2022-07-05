@@ -4,6 +4,8 @@ const {
     attributes:at, getSearchableNameString,
 } = require("./common");
 
+const {sum, sumObjects} = require('../includes/misc');
+
 module.exports = (sequelize) => {
 
     class $RailLine extends Model {
@@ -182,15 +184,17 @@ module.exports = (sequelize) => {
     }
 
     //Called Sub-Line (childrentype) Item is updated
-    $RailLine.prototype.onSubLineUpdated = async function(subline_data){
+    $RailLine.prototype.onSubLineUpdated = async function(subline_data = null){
         let _data = {...$RailLine.new_default._data, ...this._data};
         //Get Sub-Lines
         const sublines = await $RailLine.getSubLines(this);
         let sublines_data = sublines.map(item => item.toJSON());
         //Replace old data with new data
-        for (let i in sublines_data){
-            if (sublines_data[i].id == subline_data.id){
-                sublines_data[i] = subline_data;
+        if (subline_data){
+            for (let i in sublines_data){
+                if (sublines_data[i].id == subline_data.id){
+                    sublines_data[i] = subline_data;
+                }
             }
         }
         //Set x/y_min/max
@@ -199,8 +203,7 @@ module.exports = (sequelize) => {
         _data.y_min = Math.min(...sublines_data.map(sl => sl._data.y_min).filter(Number.isFinite));
         _data.y_max = Math.max(...sublines_data.map(sl => sl._data.y_max).filter(Number.isFinite));
         //Set length_km
-        _data.length_km = sublines_data.map(sl => sl._data.length_km).filter(Number.isFinite)
-        .reduce((prev, curr) => (prev + curr), 0);
+        _data.length_km = sum(sublines_data.map(sl => sl._data.length_km).filter(Number.isFinite));
         //Set rail_operator_ids
         _data.rail_operator_ids = sublines_data.map(sl => `|${sl.rail_operator_id}`)
         .filter((val, index, self) => (self.indexOf(val) === index)).join('');

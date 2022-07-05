@@ -66,6 +66,18 @@ router.delete('/p/:project_id/file/:file_key', _auth.editor, FileController.remo
 router.get('/p/:project_id/file', _auth.editor, FileController.getFiles);
 
 /**
+ * Content APIs (Special)
+ */
+
+const RailLineAndStationController = require('../controllers/RailLineAndStationController');
+
+router.get('/p/:project_id/rail-line/stats', _auth.viewer, RailLineAndStationController.getRailLineStats);
+router.get('/p/:project_id/station/stats', _auth.viewer, RailLineAndStationController.getStationStats);
+router.put('/p/:project_id/rail-line/_data', _auth.editor, RailLineAndStationController.refreshRailLineData);
+router.put('/p/:project_id/rail-line-sub/_data', _auth.editor, RailLineAndStationController.refreshRailLineData);
+router.put('/p/:project_id/rail-line-sub/sections', _auth.editor, RailLineAndStationController.updateSubLinesSections);
+
+/**
  * Content APIs (Generic)
  */
 
@@ -78,12 +90,6 @@ router.put('/p/:project_id/:type/:id', _auth.editor, ContentGeneralController.ed
 router.delete('/p/:project_id/:type/:id', _auth.editor, ContentGeneralController.removeItem);
 router.post('/p/:project_id/:type/:id', _auth.editor, ContentGeneralController.duplicateItem);
 router.put('/p/:project_id/:type', _auth.editor, ContentGeneralController.reorderItem);
-
-/**
- * Content APIs (Special)
- */
-
-
 
 /**
  * Misc

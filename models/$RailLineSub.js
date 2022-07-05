@@ -1,8 +1,11 @@
 'use strict';
 const { Model, DataTypes:dt, Op } = require('sequelize');
+const $RailLine = require('./$RailLine');
 const {
     attributes:at, getSearchableNameString,
 } = require("./common");
+
+const {sum, sumObjects} = require('../includes/misc');
 
 module.exports = (sequelize) => {
 
@@ -162,24 +165,35 @@ module.exports = (sequelize) => {
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
     $RailLineSub.onSave = async function(subline_data, req){
-        let _data = {...$RailLineSub.new_default._data, ...subline_data._data};
+        //Get Refreshed Data
+        subline_data = $RailLineSub.getRefreshedData(subline_data);
+        //Reconstruct _data
+        subline_data._data = {...$RailLineSub.new_default._data, ...subline_data._data};
         //Get Line
         const line = await $RailLineSub.getRailLine(subline_data);
         if (!line) return subline_data;
-        //Update Length_km
-        _data.length_km = $RailLineSub.getLengthInKm(subline_data.sections);
-        //Update Bounding Box
-        const sections = $RailLineSub.updateSectionsBoundingBoxes(subline_data.sections);
-        _data = {..._data, ...$RailLineSub.getOverallBoundingBox(subline_data)};
         //name_search
-        _data.name_search = getSearchableNameString(line.toJSON())
+        subline_data._data.name_search = getSearchableNameString(line.toJSON())
         + getSearchableNameString(subline_data);
-        //Update Station IDs
-        _data.station_ids = $RailLineSub.getStationIDs(subline_data.sections);
         //Call line (mother-type) to update
         line.onSubLineUpdated(subline_data);
         //Done
-        return {...subline_data, _data};
+        return subline_data;
+    };
+
+    //Length, Bounding Box, Station IDs
+    $RailLineSub.getRefreshedData = function(subline_data){
+        subline_data._data = subline_data._data || {};
+        //Update Length_km
+        subline_data._data.length_km = $RailLineSub.getLengthInKm(subline_data.sections);
+        //Update Bounding Box
+        const sections = $RailLineSub.updateSectionsBoundingBoxes(subline_data.sections);
+        subline_data.sections = sections;
+        subline_data._data = {...subline_data._data, ...$RailLineSub.getOverallBoundingBox(subline_data)};
+        //Update Station IDs
+        subline_data._data.station_ids = $RailLineSub.getStationIDs(subline_data.sections);
+        //Return Me
+        return subline_data;
     };
 
     /**
@@ -217,8 +231,7 @@ module.exports = (sequelize) => {
 
     //Get Length in Km
     $RailLineSub.getLengthInKm = function(sections){
-        return sections.map(s => s._distance_km)
-        .filter(Number.isFinite).reduce((prev, curr) => (prev + curr), 0);
+        return sum(sections.map(s => s._distance_km).filter(Number.isFinite));
     }
 
     //Get Station IDs
