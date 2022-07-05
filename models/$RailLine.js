@@ -100,7 +100,7 @@ module.exports = (sequelize) => {
     $RailLine.limit_max = null;
 
     $RailLine.allow_duplicate = true;
-    $RailLine.allow_reorder = true;
+    $RailLine.allow_reorder = false;
 
     //Display Modes for GET methods (query: _mode).
     //Returns {where, attributes, include, order}

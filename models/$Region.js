@@ -3,6 +3,9 @@ const { Model, DataTypes:dt, Op } = require('sequelize');
 const {
     attributes:at, getSearchableNameString, combineWords,
 } = require("./common");
+const {
+    getAreaOfPolygons, getBoundingBoxOfPolygons,
+} = require('../includes/longitude_latitude_calc');
 
 module.exports = (sequelize) => {
 
@@ -160,10 +163,16 @@ module.exports = (sequelize) => {
     //Custom data process function (params: item, req) used before saving in PUT, POST.
     //Notice that the updated data affects _history.
     $Region.onSave = async function(item, req){
-        //name_search
-        item._data.name_search = getSearchableNameString(item);
+        //x_min,y_min, x_max, y_max
+        const bounding_box = getBoundingBoxOfPolygons(item.polygons) || {};
+        item._data.x_min = bounding_box.x_min;
+        item._data.x_max = bounding_box.x_max;
+        item._data.y_min = bounding_box.y_min;
+        item._data.y_max = bounding_box.y_max;
         //land_area, _polygons.land
         //...
+        //name_search
+        item._data.name_search = getSearchableNameString(item);
         //Done
         return item;
     };
