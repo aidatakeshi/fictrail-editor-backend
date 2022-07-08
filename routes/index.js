@@ -77,6 +77,11 @@ router.put('/p/:project_id/rail-line/_data', _auth.editor, RailLineAndStationCon
 router.put('/p/:project_id/rail-line-sub/_data', _auth.editor, RailLineAndStationController.refreshRailLineData);
 router.put('/p/:project_id/rail-line-sub/sections', _auth.editor, RailLineAndStationController.updateSubLinesSections);
 
+const MapSpecialController = require('../controllers/MapSpecialController');
+
+router.get('/p/:project_id/map-display', _auth.viewer, MapSpecialController.mapDisplay);
+router.get('/p/:project_id/map-display/:type', _auth.viewer, MapSpecialController.mapDisplay);
+
 /**
  * Content APIs (Generic)
  */

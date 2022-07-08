@@ -23,6 +23,7 @@ module.exports = (sequelize) => {
         remarks: at.remarks(),
         map_color: at.color(),
         map_thickness: at.integer(),
+        hide_below_logzoom: at.logzoom(),
         sort: at.sort(),
         //
         _data: at._data(),

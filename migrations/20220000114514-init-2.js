@@ -142,7 +142,7 @@ module.exports = {
         await queryInterface.createTable('_rail_line_types', {
             id, project_id,
             name, name_l, remarks,
-            map_color, map_thickness,
+            map_color, map_thickness, hide_below_logzoom,
             sort,
             _data,
             created_at, created_by, deleted_at, deleted_by, _history,
