@@ -5,7 +5,7 @@ const LoginSession = $models.LoginSession;
 
 const { QueryTypes, Op } = require('sequelize');
 const {e, val_e, w} = require("./common");
-const {APIforListing, APIforSavingWithHistory} = require("./common");
+const {APIforListing} = require("./common");
 
 const { v4: uuid } = require('uuid');
 const multer  = require('multer');

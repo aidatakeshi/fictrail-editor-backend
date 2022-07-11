@@ -19,8 +19,6 @@ module.exports = (sequelize) => {
         latitude_max: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
         longitude_min: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
         longitude_max: { type: dt.DOUBLE, allowNull: false, validate: validations.decimal },
-        //
-        _history: { type: dt.JSON },
     };
 
     const validate = {
@@ -44,11 +42,9 @@ module.exports = (sequelize) => {
     };
 
     const defaultScope = {
-        attributes: { exclude: ["_history"] },
     };
 
     const scopes = {
-        "+history": {},
     };
 
     const model_options = {
@@ -79,7 +75,7 @@ module.exports = (sequelize) => {
      * Model Specific Methods
      */
     ProjectSettings.filterQueries = function(queries){
-        for (let f of ['id', 'project_id', '_history']) delete queries[f];
+        for (let f of ['id', 'project_id']) delete queries[f];
         return queries;
     };
     

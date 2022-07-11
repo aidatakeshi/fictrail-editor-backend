@@ -146,13 +146,13 @@ exports.getProject = async (req, res) => { await w(res, async (t) => {
 exports.setProject = async (req, res) => { await w(res, async (t) => {
 
     const filteredQueries = Project.filterQueries(req.body, false);
-    const project = await Project.scope('+history').findOne({
+    const project = await Project.findOne({
         where: {id: res.locals.project_id},
     }, t);
 
     //Proceed
-    return APIforSavingWithHistory(req, res, project, filteredQueries, {
-        mapping_history: (project) => project.display(),
+    return APIforSavingWithHistory(req, res, 'project', project, filteredQueries, {
+        mapping_history: Project.display,
         mapping: (project) => ({
             ...project.display(),
             my_rights: res.locals.rights,
@@ -344,7 +344,7 @@ exports.getProjectSettings = async (req, res) => { await w(res, async (t) => {
 exports.setProjectSettings = async (req, res) => { await w(res, async (t) => {
 
     const project_id = res.locals.project_id;
-    const project_settings = await ProjectSettings.scope('+history').findOne({
+    const project_settings = await ProjectSettings.findOne({
         where: {project_id}
     });
     const filteredQueries = ProjectSettings.filterQueries(req.body, false);
@@ -354,14 +354,6 @@ exports.setProjectSettings = async (req, res) => { await w(res, async (t) => {
     }
 
     //Proceed
-    const mapping = (project_settings) => {
-        let data = project_settings.toJSON();
-        delete data.id;
-        return data;
-    };
-    return APIforSavingWithHistory(req, res, project_settings, filteredQueries, {
-        mapping_history: mapping,
-        mapping: mapping,
-    });
+    return APIforSavingWithHistory(req, res, 'project-settings', project_settings, filteredQueries, {});
 
 })};

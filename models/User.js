@@ -41,16 +41,13 @@ module.exports = (sequelize) => {
         created_by: { type: dt.STRING },
         deleted_at: { type: dt.BIGINT },
         deleted_by: { type: dt.STRING },
-        _history: { type: dt.JSON },
     };
 
     const defaultScope = {
         where: { deleted_by: null },
-        attributes: { exclude: ["_history"] },
     };
 
     const scopes = {
-        "+history": {where: defaultScope.where},
     };
 
     const model_options = {
@@ -115,15 +112,17 @@ module.exports = (sequelize) => {
     /**
      * Model Specific Methods
      */
+    User.display = function(data){
+        for (let f of ['password', 'last_login_attempt', 'deleted_at', 'deleted_by']) delete data[f];
+        return data;
+    };
     User.prototype.display = function(){
-        let obj = { ...this.toJSON() }
-        for(let f of ['password', 'last_login_attempt', 'deleted_at', 'deleted_by']) delete obj[f];
-        return obj;
+        return User.display(this.toJSON());
     };
 
     User.filterQueries = function(queries, isMyself, isNew){
         if (!isNew) delete queries.id;
-        for (let f of ['created_at', 'created_by', 'deleted_at', 'deleted_by', '_history']) delete queries[f];
+        for (let f of ['created_at', 'created_by', 'deleted_at', 'deleted_by']) delete queries[f];
         for (let f of ['last_login_attempt']) delete queries[f];
         if (isMyself){
             for (let f of ['password', 'is_root_user', 'can_create_new_project', 'is_enabled']) delete queries[f];

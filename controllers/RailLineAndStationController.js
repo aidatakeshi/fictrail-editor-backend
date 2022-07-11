@@ -6,6 +6,8 @@ const $RailOperator = $models.$RailOperator;
 const $Station = $models.$Station;
 const $Region = $models.$Region;
 
+const EditHistory = $models.EditHistory;
+
 const { QueryTypes, Op } = require('sequelize');
 const {e, val_e, w} = require("./common");
 const { getDelta, applyDelta } = require('../includes/diffJSON');
@@ -313,7 +315,7 @@ exports.refreshRailLineData = async (req, res) => { await w(res, async (t) => {
 })};
 
 /**
- * PUT /p/:project_id/rail-lines-sub/sections
+ * PUT /p/:project_id/rail-line-sub/sections
  */
 exports.updateSubLinesSections = async (req, res) => { await w(res, async (t) => {
 
@@ -322,7 +324,7 @@ exports.updateSubLinesSections = async (req, res) => { await w(res, async (t) =>
 
     for (let id in request_data){
         //Get Item
-        const item = await $RailLineSub.scope('+history').findOne({where: {
+        const item = await $RailLineSub.findOne({where: {
             project_id: req.params.project_id, id,
         }}, t);
         //If item exists
@@ -330,24 +332,12 @@ exports.updateSubLinesSections = async (req, res) => { await w(res, async (t) =>
             //Compare section data
             const sections_old = item.sections;
             const sections = request_data[id];
-            const delta = getDelta(sections, sections_old);
             item.changed('sections', true);
-            //Add to History
-            let _history;
-            if (_history = item._history){
-                if (!Array.isArray(_history)) _history = [];
-                if (delta !== undefined){
-                    _history.unshift({
-                        updated_at: Math.floor(new Date().getTime() / 1000),
-                        updated_by: res.locals.user_id,
-                        delta,
-                    });
-                }
-                item.changed('_history', true); //Force change _history field
-            }
             //Do Update
-            await item.update({sections, _history}, t);
+            await item.update({sections}, t);
             updated_data[id] = sections;
+            //Add to Edit History
+            await EditHistory.newHistory(res, 'rail-lines-sub', {id, sections}, {id, sections: sections_old}, t);
         }
     }
 

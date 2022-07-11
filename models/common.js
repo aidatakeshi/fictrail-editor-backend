@@ -127,7 +127,6 @@ const at = {
     created_by: () => ({ type: dt.STRING }),
     deleted_at: () => ({ type: dt.BIGINT }),
     deleted_by: () => ({ type: dt.STRING }),
-    _history: () => ({ type: dt.JSON }),
 };
 exports.attributes = at;
 

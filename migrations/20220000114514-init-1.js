@@ -15,7 +15,6 @@ module.exports = {
         const double = { type: Sequelize.DOUBLE, allowNull: true };
         const bigint = { type: Sequelize.BIGINT, allowNull: true };
 
-        const _history = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
         const created_at = timestamp;
         const created_by = string;
         const deleted_at = timestamp;
@@ -34,7 +33,7 @@ module.exports = {
             is_root_user: bool_default_false,
             can_create_new_project: bool_default_true,
             //
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         /**
@@ -46,7 +45,7 @@ module.exports = {
             name_l: json,
             is_public: bool_default_false,
             //
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         /**
@@ -58,7 +57,7 @@ module.exports = {
             project_id: string_required,
             rights: string,
             //
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         /**
@@ -96,7 +95,6 @@ module.exports = {
             latitude_max: double,
             longitude_min: double,
             longitude_max: double,
-            _history,
         });
 
         /**

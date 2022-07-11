@@ -1,5 +1,6 @@
 const { QueryTypes, Op } = require('sequelize');
-const { getDelta, applyDelta } = require('../includes/diffJSON');
+
+const EditHistory = $models.EditHistory;
 
 /**
  * Show Error as JSON Response [showError / e]
@@ -178,7 +179,7 @@ exports.APIforListing = APIforListing;
  * mapping (function: item, req) - data mapping for returning
  * onSave (function: item, req) - pre-save process function
  */
-async function APIforSavingWithHistory(req, res, item, filteredQueries, options = {}){
+async function APIforSavingWithHistory(req, res, type, item, filteredQueries, options = {}, t){
 
     //Prepare new data
     let old_data = item.toJSON();
@@ -195,32 +196,18 @@ async function APIforSavingWithHistory(req, res, item, filteredQueries, options 
         new_data = await options.onSave(new_data, req);
     }
 
-    //Get Delta between new & old data
+    //Save history
     let new_data_compare = { ...new_data };
     let old_data_compare = { ...old_data };
     if (options.mapping_history){
         new_data_compare = options.mapping_history(new_data_compare, req);
         old_data_compare = options.mapping_history(old_data_compare, req);
     }
-    const delta = getDelta(new_data_compare, old_data_compare);
-
-    //Add to History
-    let _history;
-    if (_history = item._history){
-        if (!Array.isArray(_history)) _history = [];
-        if (delta !== undefined){
-            _history.unshift({
-                updated_at: Math.floor(new Date().getTime() / 1000),
-                updated_by: res.locals.user_id,
-                delta,
-            });
-        }
-        item.changed('_history', true); //Force change _history field
-    }
 
     //Do Update, catch validation errors
     try{
-        await item.update({ ...new_data, _history });
+        await item.update(new_data, t);
+        await EditHistory.newHistory(res, type, new_data_compare, old_data_compare, t);
     }catch(error){
         return showValidationError(res, error);
     }
@@ -231,7 +218,6 @@ async function APIforSavingWithHistory(req, res, item, filteredQueries, options 
     }else{
         data = item.toJSON();
     }
-    delete data._history;
     return res.send(data);
 
 }

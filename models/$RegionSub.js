@@ -61,16 +61,14 @@ module.exports = (sequelize) => {
         created_by: at.created_by(),
         deleted_at: at.deleted_at(),
         deleted_by: at.deleted_by(),
-        _history: at._history(),
+        
     };
 
     const defaultScope = {
         where: { deleted_by: null },
-        attributes: { exclude: ["_history"] },
     };
 
     const scopes = {
-        "+history": {where: defaultScope.where},
     };
 
     const model_options = {
@@ -155,7 +153,7 @@ module.exports = (sequelize) => {
     };
 
     //Custom data process function (params: item, req) used before saving in PUT, POST.
-    //Notice that the updated data affects _history.
+    //Notice that the updated data affects edit history.
     $RegionSub.onSave = function(item, req){
         //x_min,y_min, x_max, y_max
         const bounding_box = getBoundingBoxOfPolygons(item.polygons) || {};

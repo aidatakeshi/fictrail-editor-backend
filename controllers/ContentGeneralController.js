@@ -1,5 +1,6 @@
 const Project = $models.Project;
 const User = $models.User;
+const EditHistory = $models.EditHistory;
 
 const { QueryTypes, Op } = require('sequelize');
 const { e, val_e, w } = require("./common");
@@ -135,6 +136,7 @@ exports.createItem = async (req, res) => { await w(res, async (t) => {
 exports.editItem = async (req, res) => { await w(res, async (t) => {
 
     //Get Class
+    const type = req.params.type;
     const $Class = $models[getClassName(req)];
     if (!$Class){
         return e(404, res, 'route_not_found', 'Route Not Found');
@@ -149,7 +151,7 @@ exports.editItem = async (req, res) => { await w(res, async (t) => {
     const params = filterQueries(req.body);
 
     //Find Item
-    let item = await $Class.scope('+history').findOne({
+    let item = await $Class.findOne({
         where: {
             project_id: res.locals.project_id,
             id: req.params.id,
@@ -160,7 +162,7 @@ exports.editItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Proceed
-    return APIforSavingWithHistory(req, res, item, params, {
+    return APIforSavingWithHistory(req, res, type, item, params, {
         mapping_history: (item, req) => {
             item = displayItem(item, false);
             //Ignore fields starting with '_'
@@ -192,7 +194,7 @@ exports.removeItem = async (req, res) => { await w(res, async (t) => {
     }
 
     //Find Item
-    let item = await $Class.scope('+history').findOne({
+    let item = await $Class.findOne({
         where: {
             project_id: res.locals.project_id,
             id: req.params.id,
@@ -281,6 +283,7 @@ exports.duplicateItem = async (req, res) => { await w(res, async (t) => {
 exports.reorderItem = async (req, res) => { await w(res, async (t) => {
 
     //Get Class
+    const type = req.params.type;
     const $Class = $models[getClassName(req)];
     if (!$Class){
         return e(404, res, 'route_not_found', 'Route Not Found');
@@ -302,7 +305,7 @@ exports.reorderItem = async (req, res) => { await w(res, async (t) => {
     }
     
     //Start Reorder
-    let items = await $Class.scope('+history').findAll({
+    let items = await $Class.findAll({
         where: {
             project_id: res.locals.project_id,
             id: {[Op.in]: ids},
@@ -312,19 +315,10 @@ exports.reorderItem = async (req, res) => { await w(res, async (t) => {
         const id = item.id;
         const sort_old = item.sort;
         const sort = sort_by_id[id];
-        //Update item history as well
-        let _history = item._history;
-        if (!Array.isArray(_history)) _history = [];
-        if (sort != sort_old){
-            _history.unshift({
-                updated_at: Math.floor(new Date().getTime() / 1000),
-                updated_by: res.locals.user_id,
-                delta: {sort},
-            });
-        }
-        item.changed('_history', true); //Force change _history field
         //Do Update
-        await item.update({ sort, _history }, t);
+        await item.update({ sort }, t);
+        //Update edit history as well
+        await EditHistory.newHistory(res, type, {id, sort}, {id, sort: sort_old}, t);
     }
 
     //Return result
@@ -342,8 +336,8 @@ function getClassName(req){
     return `$${className}`;
 }
 
-const excluded_fields = ['project_id', 'deleted_at', 'deleted_by', '_history'];
-const excluded_fields_assoc = ['project_id', 'created_at', 'created_by', 'deleted_at', 'deleted_by', '_history'];
+const excluded_fields = ['project_id', 'deleted_at', 'deleted_by'];
+const excluded_fields_assoc = ['project_id', 'created_at', 'created_by', 'deleted_at', 'deleted_by'];
 
 function displayItem(item, isList = false){
     if (item.toJSON) item = item.toJSON();
@@ -354,7 +348,7 @@ function displayItem(item, isList = false){
 }
 
 function filterQueries(queries){
-    const fields = ['id', 'created_at', 'created_by', 'deleted_at', 'deleted_by', 'project_id', '_history'];
+    const fields = ['id', 'created_at', 'created_by', 'deleted_at', 'deleted_by', 'project_id'];
     for (let f of fields) delete queries[f];
     return queries;
 }

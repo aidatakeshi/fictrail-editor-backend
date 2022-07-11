@@ -109,13 +109,13 @@ exports.getMyself = async (req, res) => { await w(res, async (t) => {
  * PUT /myself
  */
 exports.setMyself = async (req, res) => { await w(res, async (t) => {
-    const user = await User.scope('+history').findOne({where: {id: res.locals.user_id}});
+    const user = await User.findOne({where: {id: res.locals.user_id}});
     const filteredQueries = User.filterQueries(req.body, true, false);
 
-    return APIforSavingWithHistory(req, res, user, filteredQueries, {
-        mapping_history: (user) => user.display(),
-        mapping: (user) => user.display(),
-    });
+    return APIforSavingWithHistory(req, res, 'user', user, filteredQueries, {
+        mapping_history: User.display,
+        mapping: User.display,
+    }, t);
 })};
 
 /**
@@ -208,7 +208,7 @@ exports.getUser = async (req, res) => { await w(res, async (t) => {
  */
 exports.setUser = async (req, res) => { await w(res, async (t) => {
 
-    const user = await User.scope('+history').findOne({
+    const user = await User.findOne({
         where: {id: req.params.user_id},
     }, t);
     const filteredQueries = User.filterQueries(req.body, false, false);
@@ -219,9 +219,9 @@ exports.setUser = async (req, res) => { await w(res, async (t) => {
     }
 
     //Proceed
-    return APIforSavingWithHistory(req, res, user, filteredQueries, {
-        mapping_history: (user) => user.display(),
-        mapping: (user) => user.display(),
+    return APIforSavingWithHistory(req, res, 'user', user, filteredQueries, {
+        mapping_history: User.display,
+        mapping: User.display,
     });
 
 })};

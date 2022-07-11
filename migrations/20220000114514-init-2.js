@@ -58,7 +58,6 @@ module.exports = {
         const _data = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
         const _polygons = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
         
-        const _history = { type: Sequelize.JSON, allowNull: false, defaultValue: [] };
         const created_at = { type: Sequelize.BIGINT, allowNull: false, defaultValue: 0 };
         const created_by = { type: Sequelize.STRING, allowNull: true };
         const deleted_at = { type: Sequelize.BIGINT, allowNull: false, defaultValue: 0 };
@@ -72,7 +71,7 @@ module.exports = {
             hide_below_logzoom,
             sort, is_locked, is_hidden, remarks,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_map_lands', {
@@ -81,7 +80,7 @@ module.exports = {
             hide_below_logzoom,
             sort, is_locked, remarks,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_map_waters', {
@@ -90,7 +89,7 @@ module.exports = {
             hide_below_logzoom,
             sort, is_locked, remarks,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_regions_broader', {
@@ -98,7 +97,7 @@ module.exports = {
             name, name_l, name_short, name_short_l,
             sort, remarks,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_regions', {
@@ -108,7 +107,7 @@ module.exports = {
             sort, is_locked,
             polygons, _polygons,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_regions_sub', {
@@ -118,7 +117,7 @@ module.exports = {
             sort, is_locked,
             polygons, _polygons,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_rail_operator_types', {
@@ -126,7 +125,7 @@ module.exports = {
             name, name_l, remarks,
             sort,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_rail_operators', {
@@ -136,7 +135,7 @@ module.exports = {
             color, color_text, logo_file_key,
             remarks, sort,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_rail_line_types', {
@@ -145,7 +144,7 @@ module.exports = {
             map_color, map_thickness, hide_below_logzoom,
             sort,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_rail_lines', {
@@ -153,7 +152,7 @@ module.exports = {
             rail_line_type_id,
             name, name_l, name_short, name_short_l, remarks,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_rail_lines_sub', {
@@ -163,7 +162,7 @@ module.exports = {
             color, color_text, remarks,
             max_speed_kph, sections,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_train_service_types', {
@@ -173,7 +172,7 @@ module.exports = {
             color, color_text, is_premium, remarks,
             sort,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_train_service_names', {
@@ -183,7 +182,7 @@ module.exports = {
             color, color_text, remarks,
             sort,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_stations', {
@@ -195,7 +194,7 @@ module.exports = {
             is_major, is_signal_only, is_in_use,
             remarks,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_train_vehicle_types', {
@@ -203,7 +202,7 @@ module.exports = {
             name, name_l,
             remarks, sort,
             _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
         await queryInterface.createTable('_train_vehicle_specs', {
@@ -212,7 +211,7 @@ module.exports = {
             name, name_l, remarks,
             specs, sort,
             _results, _results_by_kph, _data,
-            created_at, created_by, deleted_at, deleted_by, _history,
+            created_at, created_by, deleted_at, deleted_by,
         });
 
     },

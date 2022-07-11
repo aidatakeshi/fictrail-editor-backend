@@ -26,16 +26,13 @@ module.exports = (sequelize) => {
         created_by: { type: dt.STRING },
         deleted_at: { type: dt.BIGINT },
         deleted_by: { type: dt.STRING },
-        _history: { type: dt.JSON },
     };
 
     const defaultScope = {
         where: { deleted_by: null },
-        attributes: { exclude: ["_history"] },
     };
 
     const scopes = {
-        "+history": {where: defaultScope.where},
     };
 
     const model_options = {
@@ -92,15 +89,17 @@ module.exports = (sequelize) => {
     /**
      * Model Specific Methods
      */
+    Project.display = function(data){
+        for (let f of ['deleted_at', 'deleted_by']) delete data[f];
+        return data;
+    }
     Project.prototype.display = function(){
-        let obj = { ...this.toJSON() }
-        for(let f of ['deleted_at', 'deleted_by']) delete obj[f];
-        return obj;
+        return Project.display(this.toJSON());
     };
 
     Project.filterQueries = function(queries, isNew){
         if (!isNew) delete queries.id;
-        for (let f of ['created_at', 'created_by', 'deleted_at', 'deleted_by', '_history']) delete queries[f];
+        for (let f of ['created_at', 'created_by', 'deleted_at', 'deleted_by']) delete queries[f];
         return queries;
     };
 
