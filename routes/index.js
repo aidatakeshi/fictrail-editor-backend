@@ -43,6 +43,7 @@ const ProjectController = require('../controllers/ProjectController');
 
 router.post('/project', _auth.user, ProjectController.newProject);
 router.get('/project', _auth.user, ProjectController.getProjects);
+router.get('/project-public', ProjectController.getPublicProjects);
 router.get('/project/:project_id', _auth.viewer, ProjectController.getProject);
 router.put('/project/:project_id', _auth.editor, ProjectController.setProject);
 router.delete('/project/:project_id', _auth.owner, ProjectController.removeProject);

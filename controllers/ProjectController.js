@@ -52,6 +52,19 @@ exports.newProject = async (req, res) => { await w(res, async (t) => {
 })};
 
 /**
+ * GET /project-public
+ */
+exports.getPublicProjects = async (req, res) => { await w(res, async (t) => {
+
+    let response = await APIforListing(req, res, 'Project', {
+        where: { is_public: true },
+        mapping: (instance) => instance.display(),
+    });
+    return response;
+
+})};
+
+/**
  * GET /project
  */
 exports.getProjects = async (req, res) => { await w(res, async (t) => {
