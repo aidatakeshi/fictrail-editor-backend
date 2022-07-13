@@ -16,6 +16,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Allow CORS
+const cors = require('cors');
+app.use(cors());
+
 // PGSQL settings
 const pg = require('pg');
 pg.defaults.parseInt8 = true;
