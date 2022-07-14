@@ -19,7 +19,14 @@ const number = function(value){
 };
 
 const va = {
-    id: {empty, length255},
+    id: {
+        empty, length255,
+        idFormat(value){
+            if (!value.match(/^[0-9a-zA-Z_]+$/)){
+                throw new Error("Invalid ID Format. Numbers, Alphabets and Underscore Only.");
+            }
+        }
+    },
     name: {empty},
     boolean: {
         boolean(value) {
