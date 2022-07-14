@@ -22,8 +22,8 @@ const va = {
     id: {
         empty, length255,
         idFormat(value){
-            if (!value.match(/^[0-9a-zA-Z_]+$/)){
-                throw new Error("Invalid ID Format. Numbers, Alphabets and Underscore Only.");
+            if (!value.match(/^[0-9a-zA-Z-]+$/)){
+                throw new Error("Invalid ID Format. Numbers, Alphabets and Hyphen Only.");
             }
         }
     },
@@ -61,7 +61,7 @@ const va = {
                 throw new Error("Not An Object");
             }
         },
-        empty(value){
+        emptyNames(value){
             for (let f in value){
                 let subvalue = value[f];
                 if (subvalue === null || subvalue === ""){
@@ -72,7 +72,7 @@ const va = {
     },
     polygons: {
         invalidPolygons(value){
-            const $e = "It should be of GeoJSON MultiPolygon format (4-layer array)";
+            const $e = "It Should Be of GeoJSON MultiPolygon Format (4-layer array)";
             //It should be a 4-layer array,
             //while the 4 layer should have only 2 elements, and all are finite numbers.
             if (!Array.isArray(value)) throw new Error($e);
@@ -92,7 +92,7 @@ const va = {
     },
     tracks: {
         arrayOfStrings(value){
-            const $e = "It should be array of strings";
+            const $e = "It Should Be Array of Strings";
             if (!Array.isArray(value)) throw new Error($e);
             for (let item of value){
                 if (item === null) throw new Error($e);

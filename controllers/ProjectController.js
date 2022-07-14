@@ -46,6 +46,16 @@ exports.newProject = async (req, res) => { await w(res, async (t) => {
     };
     project_settings = await ProjectSettings.create(params_settings, t);
 
+    //Self-assign ownership
+    await ProjectAssignment.create({
+        id: uuid(),
+        user_id: res.locals.user_id,
+        project_id: params.id,
+        rights: 'owner',
+        created_by: res.locals.user_id,
+        created_at: Math.floor(new Date().getTime() / 1000),
+    }, t);
+
     //Return new project obj if success
     return res.send(project.display());
 
