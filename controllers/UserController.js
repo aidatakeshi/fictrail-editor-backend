@@ -125,9 +125,10 @@ exports.setMyPassword = async (req, res) => { await w(res, async (t) => {
     const user = res.locals.user;
     const old_password = req.body.old_password;
     const new_password = req.body.new_password;
+    const new_password2 = req.body.new_password2;
 
-    //Missing Params -> 401
-    if (!old_password || !new_password){
+    //Missing Params -> 400
+    if (!old_password || !new_password || !new_password2){
         return e(400, res, "missing_params", "Missing Parameters");
     }
     
@@ -135,6 +136,11 @@ exports.setMyPassword = async (req, res) => { await w(res, async (t) => {
     let verification = user.verifyPassword(old_password);
     if (!verification){
         return e(401, res, "incorrect_old_password", "Incorrect Old Password");
+    }
+    
+    //Check if new passwords not match -> 400
+    if (new_password != new_password2){
+        return e(400, res, "incorrect_new_passwords", "Incorrect New Passwords");
     }
 
     //Update with validation

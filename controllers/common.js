@@ -159,12 +159,11 @@ async function APIforListing(req, res, className, options = {}){
     });
 
     //Handle Mapping & Additional Data
-    let data;
-    if (!options.mapping){
-        data = items.map(item => item.toJSON());
-    }else{
-        data = items.map(item => options.mapping(item, req));
-    }
+    const data = items.map(item => {
+        if (typeof options.mapping === 'function') item = options.mapping(item, req);
+        if (typeof item.toJSON === 'function') item = item.toJSON();
+        return item;
+    });
 
     //Return Data
     return res.send({ pages, page, limit, from, to, count, data });
@@ -213,10 +212,11 @@ async function APIforSavingWithHistory(req, res, type, item, filteredQueries, op
     }
 
     //Return item
-    if (options.mapping){
+    if (typeof options.mapping === 'function'){
         data = options.mapping(item, req);
-    }else{
-        data = item.toJSON();
+    }
+    if (typeof item.toJSON === 'function'){
+        item = item.toJSON();
     }
     return res.send(data);
 
