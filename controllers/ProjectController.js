@@ -175,7 +175,6 @@ exports.setProject = async (req, res) => { await w(res, async (t) => {
 
     //Proceed
     return APIforSavingWithHistory(req, res, 'project', project, filteredQueries, {
-        mapping_history: Project.display,
         mapping: (project) => ({
             ...project.display(),
             my_rights: res.locals.rights,

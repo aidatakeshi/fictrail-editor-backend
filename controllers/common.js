@@ -174,33 +174,46 @@ exports.APIforListing = APIforListing;
 /**
  * API For Saving with History Handling
  * [options]
- * mapping_history (function: item, req) - data mapping for saving history
  * mapping (function: item, req) - data mapping for returning
  * onSave (function: item, req) - pre-save process function
  */
 async function APIforSavingWithHistory(req, res, type, item, filteredQueries, options = {}, t){
 
     //Prepare new data
-    let old_data = item.toJSON();
-    let new_data = { ...old_data };
+    let old_data_full = item.toJSON();
+    let new_data_full = { ...old_data_full };
     for (let field in filteredQueries){
-        if (new_data[field] !== undefined){
-            new_data[field] = filteredQueries[field];
+        if (new_data_full[field] !== undefined){
+            new_data_full[field] = filteredQueries[field];
             item.changed(field, true); //Force change field
         }
     }
 
     //Call pre-save function to new data
     if (options.onSave){
-        new_data = await options.onSave(new_data, req);
+        new_data_full = await options.onSave(new_data_full, req);
     }
 
-    //Save history
-    let new_data_compare = { ...new_data };
-    let old_data_compare = { ...old_data };
-    if (options.mapping_history){
-        new_data_compare = options.mapping_history(new_data_compare, req);
-        old_data_compare = options.mapping_history(old_data_compare, req);
+    //Save history, only with fields consisted in filteredQueries
+    let new_data_compare = {};
+    let old_data_compare = {};
+    for (let field in filteredQueries){
+        if (new_data_full[field] !== undefined){
+            new_data_compare[field] = new_data_full[field];
+        }
+        if (old_data_full[field] !== undefined){
+            old_data_compare[field] = old_data_full[field];
+        }
+    }
+    new_data_compare.id = item.id;
+    old_data_compare.id = item.id;
+
+    //Only save fields consisted in filteredQueries
+    let new_data = {};
+    for (let field in filteredQueries){
+        if (new_data_full[field] !== undefined){
+            new_data[field] = new_data_full[field];
+        }
     }
 
     //Do Update, catch validation errors

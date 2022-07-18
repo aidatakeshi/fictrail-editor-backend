@@ -163,14 +163,6 @@ exports.editItem = async (req, res) => { await w(res, async (t) => {
 
     //Proceed
     return APIforSavingWithHistory(req, res, type, item, params, {
-        mapping_history: (item, req) => {
-            item = displayItem(item, false);
-            //Ignore fields starting with '_'
-            for (let field in item){
-                if (field.substring(0, 1) === '_') delete item[field];
-            }
-            return item;
-        },
         mapping: (item, req) => displayItem(item, false),
         onSave: $Class.onSave,
     });
