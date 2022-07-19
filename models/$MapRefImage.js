@@ -26,7 +26,6 @@ module.exports = (sequelize) => {
         hide_below_logzoom: at.logzoom(),
         sort: at.sort(),
         is_locked: at.is_locked(),
-        is_hidden: at.is_hidden(),
         //
         _data: at._data(),
         //

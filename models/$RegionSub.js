@@ -47,7 +47,7 @@ module.exports = (sequelize) => {
                 const name_suffix_l = this.get('name_suffix_l');
                 let name_full_l = {};
                 for (let l in name_l){
-                    name_full_l = combineWords(name_l[l], name_suffix_l[l]);
+                    name_full_l[l] = combineWords(name_l[l], name_suffix_l[l]);
                 }
                 return name_full_l;
             },

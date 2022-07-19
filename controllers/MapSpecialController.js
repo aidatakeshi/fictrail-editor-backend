@@ -119,7 +119,7 @@ const getMapRefImages = async function(options, t){
         select "id", "name", "name_l", "file_key", "is_locked",
         "x_min", "x_max", "y_min", "y_max"
         from "_map_ref_images"
-        where "project_id" = :project_id and "is_hidden" = false
+        where "project_id" = :project_id
         and "x_min" <= :x_max or "x_min" is null
         and "x_max" >= :x_min or "x_max" is null
         and "y_min" <= :y_max or "y_min" is null
@@ -166,20 +166,22 @@ const getMapWaters = async function(options, t){
 //rail_lines, rail_line_sub
 const getRailLines = async function(options, t){
 
+    const _RL = `"_rail_lines"`;
+    const _RLT = `"_rail_line_types"`;
+
     //Get rail_lines
     let [result, meta] = await $models.sequelize.query(`
-        select "_rail_lines"."id", "_rail_lines"."name", "_rail_lines"."name_l",
-        "_rail_lines"."name_short","_rail_lines"."name_short_l",
-        "_rail_lines"._data->>'length_km' as "_data.length_km"
-        from "_rail_lines"
-        inner join "_rail_line_types"
-        on "_rail_line_types"."id" = "_rail_lines"."rail_line_type_id"
-        where "_rail_lines"."project_id" = :project_id
-        and "_rail_line_types"."project_id" = :project_id 
-        and (cast("_rail_lines"._data->>'x_min' as decimal) <= :x_max or "_rail_lines"._data->>'x_min' is null)
-        and (cast("_rail_lines"._data->>'x_max' as decimal) >= :x_min or "_rail_lines"._data->>'x_max' is null)
-        and (cast("_rail_lines"._data->>'y_min' as decimal) <= :y_max or "_rail_lines"._data->>'y_min' is null)
-        and (cast("_rail_lines"._data->>'y_max' as decimal) >= :y_min or "_rail_lines"._data->>'y_max' is null)
+        select ${_RL}."id", ${_RL}."name", ${_RL}."name_l",
+        ${_RL}."name_short",${_RL}."name_short_l",
+        ${_RL}._data->>'length_km' as "_data.length_km"
+        from ${_RL}
+        inner join ${_RLT} on ${_RLT}."id" = ${_RL}."rail_line_type_id"
+        where ${_RL}."project_id" = :project_id
+        and ${_RLT}."project_id" = :project_id 
+        and (cast(${_RL}._data->>'x_min' as decimal) <= :x_max or ${_RL}._data->>'x_min' is null)
+        and (cast(${_RL}._data->>'x_max' as decimal) >= :x_min or ${_RL}._data->>'x_max' is null)
+        and (cast(${_RL}._data->>'y_min' as decimal) <= :y_max or ${_RL}._data->>'y_min' is null)
+        and (cast(${_RL}._data->>'y_max' as decimal) >= :y_min or ${_RL}._data->>'y_max' is null)
         and "hide_below_logzoom" <= 0
     `, { replacements: options, ...t });
 
@@ -191,17 +193,27 @@ const getRailLines = async function(options, t){
 
     const rail_line_ids = result.map(item => item.id);
 
+    const _RLS = `"_rail_lines_sub"`;
+    const _RO = `"_rail_operators"`;
+
     //Get rail_lines_sub
     let [result_sub, meta_sub] = await $models.sequelize.query(`
-        select "rail_line_id", "id", "name", "name_l", "name_short", "name_short_l",
-        "color", "color_text", "sections",
-        "_data"->>'length_km' as "_data.length_km"
-        from "_rail_lines_sub"
-        where "project_id" = :project_id
-        and (cast(_data->>'x_min' as decimal) <= :x_max or _data->>'x_min' is null)
-        and (cast(_data->>'x_max' as decimal) >= :x_min or _data->>'x_max' is null)
-        and (cast(_data->>'y_min' as decimal) <= :y_max or _data->>'y_min' is null)
-        and (cast(_data->>'y_max' as decimal) >= :y_min or _data->>'y_max' is null)
+        select ${_RLS}."rail_line_id", ${_RLS}."id",
+        ${_RLS}."name", ${_RLS}."name_l", ${_RLS}."name_short", ${_RLS}."name_short_l",
+        ${_RLS}."color", ${_RLS}."color_text", ${_RLS}."sections",
+        ${_RLS}."_data"->>'length_km' as "_data.length_km",
+        json_build_object(
+            'name', ${_RO}."name", 'name_short', ${_RO}."name_short",
+            'color', ${_RO}."color"
+        ) as "_rail_operator"
+        from ${_RLS}
+        inner join ${_RO} on ${_RO}."id" = ${_RLS}."rail_operator_id"
+        where ${_RLS}."project_id" = :project_id
+        and ${_RO}."project_id" = :project_id
+        and (cast(${_RLS}._data->>'x_min' as decimal) <= :x_max or ${_RLS}._data->>'x_min' is null)
+        and (cast(${_RLS}._data->>'x_max' as decimal) >= :x_min or ${_RLS}._data->>'x_max' is null)
+        and (cast(${_RLS}._data->>'y_min' as decimal) <= :y_max or ${_RLS}._data->>'y_min' is null)
+        and (cast(${_RLS}._data->>'y_max' as decimal) >= :y_min or ${_RLS}._data->>'y_max' is null)
         and "rail_line_id" in (:rail_line_ids)
     `, {
         replacements: {...options, rail_line_ids},
@@ -248,14 +260,31 @@ const getRailLines = async function(options, t){
 //stations
 const getStations = async function(options, t){
 
+    const _St = `"_stations"`;
+    const _Re = `"_regions"`;
+    const _RO = `"_rail_operators"`;
+
     let [result, meta] = await $models.sequelize.query(`
-        select "id", "name", "name_l", "name_short", "name_short_l",
-        "x", "y", "altitude_m", "is_major", "is_signal_only", "is_in_use",
-        "region_id", "major_rail_operator_id"
-        from "_stations"
-        where "project_id" = 'hongon'
-        and "x" <= 160.52 and "x" >= 158.70
-        and "y" <= 35.69 and "y" >= 34.56
+        select ${_St}."id",
+        ${_St}."name", ${_St}."name_l", ${_St}."name_short", ${_St}."name_short_l",
+        ${_St}."x", ${_St}."y", ${_St}."altitude_m",
+        ${_St}."is_major", ${_St}."is_signal_only", ${_St}."is_in_use",
+        json_build_object(
+            'name', ${_RO}."name",  'name_short', ${_RO}."name_short",
+            'color', ${_RO}."color"
+        ) as "_major_rail_operator",
+        json_build_object(
+            'name', ${_Re}."name", 'name_short', ${_Re}."name_short",
+            'name_suffix', ${_Re}."name_suffix"
+        ) as "_region"
+        from ${_St}
+        inner join ${_RO} on ${_RO}."id" = ${_St}."major_rail_operator_id"
+        inner join ${_Re} on ${_Re}."id" = ${_St}."region_id"
+        where ${_St}."project_id" = :project_id
+        and ${_Re}."project_id" = :project_id
+        and ${_RO}."project_id" = :project_id
+        and "x" <= :x_max and "x" >= :x_min
+        and "y" <= :y_max and "y" >= :y_min
     `, { replacements: options, ...t });
 
     return result.map(item => ({

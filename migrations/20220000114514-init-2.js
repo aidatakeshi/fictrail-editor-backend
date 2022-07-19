@@ -53,7 +53,6 @@ module.exports = {
 
         const sort = { type: Sequelize.BIGINT, allowNull: false, defaultValue: 0 };
         const is_locked = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false };
-        const is_hidden = { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false };
 
         const _data = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
         const _polygons = { type: Sequelize.JSON, allowNull: false, defaultValue: {} };
@@ -69,7 +68,7 @@ module.exports = {
             x_min, x_max, y_min, y_max,
             file_key,
             hide_below_logzoom,
-            sort, is_locked, is_hidden, remarks,
+            sort, is_locked, remarks,
             _data,
             created_at, created_by, deleted_at, deleted_by,
         });
