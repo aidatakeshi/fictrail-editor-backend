@@ -98,8 +98,8 @@ module.exports = function(restriction = "user", use_file_token = false){
         res.locals.is_root_user = is_root_user;
         res.locals.can_create_new_project = can_create_new_project;
 
-        //Check User Rights in the Project
-        if (project_id && res.locals.user_id){
+        //Check Project & User Rights in Project
+        if (project_id){
 
             //...is_project_public, user_rights_in_project
             const project = await Project.findOne({
@@ -118,7 +118,7 @@ module.exports = function(restriction = "user", use_file_token = false){
             let project_assignment;
             if (res.locals.is_root_user){
                 user_rights_in_project = 'root';
-            }else{
+            }else if (res.locals.user_id){
                 project_assignment = await ProjectAssignment.findOne({
                     where: {project_id, user_id},
                 }, t);
@@ -159,7 +159,7 @@ module.exports = function(restriction = "user", use_file_token = false){
             else if (user_rights_in_project == "editor"){}
             else if (user_rights_in_project == "root"){}
             else{
-                return e(403, res, "not_project_editory", "Not Project Editor");
+                return e(403, res, "not_project_editor", "Not Project Editor");
             }
         }
         //viewer
